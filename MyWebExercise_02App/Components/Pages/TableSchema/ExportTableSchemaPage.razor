@@ -1,0 +1,48 @@
+﻿@page "/exportdbschema"
+@inject IDatabaseRepository DatabaseRepository
+
+<PageTitle>匯出TableSchema</PageTitle>
+
+<MudText Typo="Typo.h5">匯出TableSchema</MudText>
+<MudDivider></MudDivider>
+
+<MudPaper Class="pa-16 ma-2" Outlined="true">
+    <div class="d-flex">
+        <MudSelect @bind-Value="selectedDbName" Label="選取資料庫" HelperText="資料庫" OpenIcon="@Icons.Material.Filled.LocalDrink" AdornmentColor="Color.Secondary">
+            @foreach (string item in databases)
+            {
+                <MudSelectItem Value="@item">@item</MudSelectItem>
+            }
+        </MudSelect>
+        <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="ExportSchema">
+            匯出Schema
+        </MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    private string selectedDbName;
+    private List<string> databases = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        databases = (await DatabaseRepository.GetDatabaseNamesAsync()).ToList();
+    }
+
+    private async Task ExportSchema()
+    {
+        if (string.IsNullOrEmpty(selectedDbName))
+        {
+            // 顯示錯誤訊息，請選擇資料庫
+            return;
+        }
+        // var schema = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
+        // var json = JsonSerializer.Serialize(schema, new JsonSerializerOptions { WriteIndented = true });
+        // // 下載JSON檔案
+        // var fileName = $"{selectedDatabase}_schema.json";
+        // var fileBytes = System.Text.Encoding.UTF8.GetBytes(json);
+        // var fileUrl = $"data:application/json;base64,{Convert.ToBase64String(fileBytes)}";
+        // // 使用JavaScript下載檔案
+        // await JSRuntime.InvokeVoidAsync("downloadFile", fileUrl, fileName);
+    }
+}

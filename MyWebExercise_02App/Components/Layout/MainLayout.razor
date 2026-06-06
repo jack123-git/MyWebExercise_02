@@ -1,0 +1,183 @@
+﻿@inherits LayoutComponentBase
+@inject BreadcrumbService BreadcrumbService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
+        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
+        <MudSpacer />
+        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
+        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
+    </MudAppBar>
+    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+        <NavMenu />
+    </MudDrawer>
+    
+    <MudMainContent Class="pt-16 pa-4">
+        <MudBreadcrumbs Items="_breadcrumbs" />
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool _drawerOpen = true;
+    private bool _isDarkMode = true;
+    private MudTheme? _theme = null;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        _theme = new()
+        {
+            PaletteLight = _lightPalette,
+            PaletteDark = _darkPalette,
+            LayoutProperties = new LayoutProperties()
+        };
+
+        // 訂閱BreadcrumbService的變更事件，當麵包屑資料改變時觸發StateHasChanged重新渲染
+        // 1. 訂閱網址變更事件
+        NavigationManager.LocationChanged += OnLocationChanged;
+        // 2. 首次載入頁面時先解析一次
+        GenerateBreadcrumbs(NavigationManager.Uri);
+    }
+
+    private void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    private void DarkModeToggle()
+    {
+        _isDarkMode = !_isDarkMode;
+    }
+
+    private readonly PaletteLight _lightPalette = new()
+    {
+        Black = "#110e2d",
+        AppbarText = "#424242",
+        AppbarBackground = "rgba(255,255,255,0.8)",
+        DrawerBackground = "#ffffff",
+        GrayLight = "#e8e8e8",
+        GrayLighter = "#f9f9f9",
+    };
+
+    private readonly PaletteDark _darkPalette = new()
+    {
+        Primary = "#7e6fff",
+        Surface = "#1e1e2d",
+        Background = "#1a1a27",
+        BackgroundGray = "#151521",
+        AppbarText = "#92929f",
+        AppbarBackground = "rgba(26,26,39,0.8)",
+        DrawerBackground = "#1a1a27",
+        ActionDefault = "#74718e",
+        ActionDisabled = "#9999994d",
+        ActionDisabledBackground = "#605f6d4d",
+        TextPrimary = "#b2b0bf",
+        TextSecondary = "#92929f",
+        TextDisabled = "#ffffff33",
+        DrawerIcon = "#92929f",
+        DrawerText = "#92929f",
+        GrayLight = "#2a2833",
+        GrayLighter = "#1e1e2d",
+        Info = "#4a86ff",
+        Success = "#3dcb6c",
+        Warning = "#ffb545",
+        Error = "#ff3f5f",
+        LinesDefault = "#33323e",
+        TableLines = "#33323e",
+        Divider = "#292838",
+        OverlayLight = "#1e1e2d80",
+    };
+
+    public string DarkLightModeButtonIcon => _isDarkMode switch
+    {
+        true => Icons.Material.Rounded.AutoMode,
+        false => Icons.Material.Outlined.DarkMode,
+    };
+}
+
+
+@code {
+    // 麵包屑 資料列表，會根據當前網址動態生成
+    private List<BreadcrumbItem> _breadcrumbs = new();
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // 當網址改變時，重新解析並強制更新 UI
+        GenerateBreadcrumbs(e.Location);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void GenerateBreadcrumbs(string absoluteUri)
+    {
+        var items = new List<BreadcrumbItem>
+        {
+            // 預設加入首頁
+            new BreadcrumbItem("首頁", href: "/")
+        };
+
+        // 取得相對路徑（例如：從 http://localhost/products/edit 取得 products/edit）
+        var relativePath = NavigationManager.ToBaseRelativePath(absoluteUri);
+
+        // 移除網址後方的 QueryString 參數（如 ?id=1）
+        if (relativePath.Contains("?"))
+        {
+            relativePath = relativePath.Split('?')[0];
+        }
+
+        if (!string.IsNullOrWhiteSpace(relativePath))
+        {
+            // 用 '/' 將路徑切碎成陣列
+            var segments = relativePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var currentHref = "";
+
+            for (int i = 0; i < segments.Length; i++)
+            {
+                var segment = segments[i];
+                currentHref += $"/{segment}";
+
+                // 將網址片段轉換為易讀的名稱（例如：products 轉成 "商品管理"）
+                string displayName = GetDisplayName(segment);
+
+                // 如果是最後一個項目，將其設為停用（不允許點擊）
+                bool isLast = (i == segments.Length - 1);
+
+                items.Add(new BreadcrumbItem(displayName, href: isLast ? null : currentHref, disabled: isLast));
+            }
+        }
+
+        _breadcrumbs = items;
+    }
+
+    // 💡 路由對照字典：將網址英文轉換為中文標題
+    private string GetDisplayName(string segment) => segment.ToLower() switch
+    {
+        "exportdbschema" => "TableSchema管理",
+        "products" => "商品管理",
+        "orders" => "訂單系統",
+        "create" => "新增資料",
+        "edit" => "編輯資料",
+        "setting" => "系統設定",
+        _ => segment // 若找不到對照，預設顯示原本的網址片段（例如識別碼 ID）
+    };
+
+    public void Dispose()
+    {
+        BreadcrumbService.OnChange -= StateHasChanged;
+    }
+}

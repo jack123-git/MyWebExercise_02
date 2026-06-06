@@ -1,0 +1,39 @@
+﻿@inject MenuService MenuService
+
+@* <MudNavMenu>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
+    
+    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+
+</MudNavMenu> *@
+
+<MudNavMenu>
+    @foreach (var item in MenuItems)
+    {
+        if (item.SubMenu.Any())
+        {
+            <MudNavGroup Title="@item.Title" Icon="@item.Icon" Expanded="true">
+                @foreach (var subItem in item.SubMenu)
+                {
+                    <MudNavLink Href="@subItem.Href" Icon="@subItem.Icon">@subItem.Title</MudNavLink>
+                }
+            </MudNavGroup>
+        }
+        else
+        {
+            <MudNavLink Href="@item.Href" Icon="@item.Icon">@item.Title</MudNavLink>
+        }
+    }
+</MudNavMenu>
+
+@code {
+    private List<NavMenuItem> MenuItems = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        // 注入的 service 獲取數據
+        MenuItems = await MenuService.GetMenus();
+    }
+}

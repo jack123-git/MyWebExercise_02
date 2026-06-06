@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="MyWebExercise_02App/JackToolApp.csproj" />
+  <Project Path="MyWebExercise_02Lib/JackToolLib.csproj" />
+</Solution>

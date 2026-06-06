@@ -1,0 +1,130 @@
+﻿@page "/"
+@inject IDialogService DialogService
+
+
+<PageTitle>Home</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
+<MudText Class="mb-8">Welcome to your new app, powered by MudBlazor and the .NET 10 Template!</MudText>
+
+<ExportTableSchemaPage></ExportTableSchemaPage>
+@*
+<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Start))">Start</MudButton>
+<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.End))">End</MudButton>
+<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Top))">Top</MudButton>
+<MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Bottom))">Bottom</MudButton>
+<MudSwitch @bind-Value="_overlayAutoClose" Label="Overlay Autoclose" Color="Color.Secondary" />
+<MudDrawer @bind-Open="@_open" Anchor="@_anchor" Elevation="1" Variant="@DrawerVariant.Temporary" OverlayAutoClose="@_overlayAutoClose">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">My App</MudText>
+    </MudDrawerHeader>
+    <MudNavMenu>
+        <MudNavLink Match="NavLinkMatch.All">Store</MudNavLink>
+        <MudNavLink Match="NavLinkMatch.All">Library</MudNavLink>
+        <MudNavLink Match="NavLinkMatch.All">Community</MudNavLink>
+        <MudNavLink OnClick="_ => _open = false">Close Drawer</MudNavLink>
+    </MudNavMenu>
+</MudDrawer>
+@code {
+    private bool _open;
+    private Anchor _anchor;
+    private bool _overlayAutoClose = true;
+
+    private void OpenDrawer(Anchor anchor)
+    {
+        _open = true;
+        _anchor = anchor;
+    }
+}
+
+<hr />
+
+<MudButton OnClick="@(() => OpenDialogAsync(_maxWidth))">MaxWidth dialog</MudButton>
+<MudButton OnClick="@(() => OpenDialogAsync(_closeButton))" Color="Color.Primary">Close Button dialog</MudButton>
+<MudButton OnClick="@(() => OpenDialogAsync(_noHeader))" Color="Color.Secondary">No Header dialog</MudButton>
+<MudButton OnClick="@(() => OpenDialogAsync(_backdropClick))" Color="Color.Tertiary">Disable Backdrop dialog</MudButton>
+<MudButton OnClick="@(() => OpenDialogAsync(_fullScreen))" Color="Color.Info">Full Screen dialog</MudButton>
+<MudButton OnClick="@(() => OpenDialogAsync(_topCenter))" Color="Color.Success">Top Center dialog</MudButton>
+@code {
+    private readonly DialogOptions _maxWidth = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+    private readonly DialogOptions _closeButton = new() { CloseButton = true };
+    private readonly DialogOptions _noHeader = new() { NoHeader = true };
+    private readonly DialogOptions _backdropClick = new() { BackdropClick = false };
+    private readonly DialogOptions _fullScreen = new() { FullScreen = true, CloseButton = true };
+    private readonly DialogOptions _topCenter = new() { Position = DialogPosition.TopCenter };
+
+    private Task OpenDialogAsync(DialogOptions options)
+    {
+        return DialogService.ShowAsync<DialogUsageExample_Dialog>("Custom Options Dialog", options);
+    }
+}
+
+<MudDropContainer T="DropZoneItem" Items="_items" ItemsSelector="@((item, dropzone) => item.Zone == dropzone)" ItemDropped="ItemUpdated" Class="4 flex-grow-1">
+    <ChildContent>
+        <MudDropContainer T="DropZone" Items="_zones" ItemDisabled="@(item => true)" ItemsSelector="@((item, dropzone) => true)" Class="5">
+            <ChildContent>
+                <MudDropZone T="DropZone" AllowReorder Class="6 rounded mud-background-gray px-4 py-1 ma-4" />
+            </ChildContent>
+            <ItemRenderer>
+                <MudPaper Class="pa-4 my-4">
+                    <MudText Typo="Typo.h6">@context.Name</MudText>
+                    <MudDropZone T="DropZoneItem" Identifier="@context.Name" AllowReorder Class="rounded mud-background-gray px-4 py-1 ma-4" />
+                </MudPaper>
+            </ItemRenderer>
+        </MudDropContainer>
+    </ChildContent>
+    <ItemRenderer>
+        <MudPaper Class="pa-4 my-4">
+            <MudText>@context.Name</MudText>
+        </MudPaper>
+    </ItemRenderer>
+</MudDropContainer>
+@code {
+
+    private void ItemUpdated(MudItemDropInfo<DropZoneItem> dropItem) => dropItem.Item.Zone = dropItem.DropzoneIdentifier;
+
+    private List<DropZone> _zones = new()
+    {
+        new() { Name = "Drop Zone 1" },
+        new() { Name = "Drop Zone 2" }
+    };
+
+    private List<DropZoneItem> _items = new()
+    {
+        new() { Zone = "Drop Zone 1", Name = "Item 1" },
+        new() { Zone = "Drop Zone 1", Name = "Item 2" },
+        new() { Zone = "Drop Zone 2", Name = "Item 3" },
+    };
+
+    private class DropZone
+    {
+        public string Name { get; init; }
+    }
+
+    private class DropZoneItem
+    {
+        public string Zone { get; set; }
+        public string Name { get; init; }
+    }
+}
+
+
+<MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="OnButtonClicked">Delete</MudButton>
+
+<MudChip T="string">@state</MudChip>
+@code
+{
+    // [Inject] private IDialogService DialogService { get; set; }
+
+    string state = "Message box hasn't been opened yet";
+
+    private async void OnButtonClicked()
+    {
+        bool? result = await DialogService.ShowMessageBoxAsync(
+            "Warning",
+            "Deleting can not be undone!",
+            yesText: "Delete!", cancelText: "Cancel");
+        state = result == null ? "Canceled" : "Deleted!";
+        StateHasChanged();
+    }
+} *@
