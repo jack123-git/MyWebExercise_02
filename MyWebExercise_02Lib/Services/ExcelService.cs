@@ -1,16 +1,21 @@
-﻿using JackToolLib.Models;
+﻿using JackToolLib.Extension;
+using JackToolLib.Interfaces;
+using JackToolLib.Models;
 using NPOI.XSSF.UserModel;    
 using System;
 using System.Collections.Generic;
 using System.Text;
-using JackToolLib.Extension;
 
 namespace JackToolLib.Services
 {
-    public class ExcelService
+    public class ExcelService: IExcelService
     {
-        public void GenerateDocument(List<DbTable> DbTables, List<string> tableNames, string templatePath, string outputDocPath)
+        public async Task<byte[]> GenerateDocumentAsync(List<DbTable> DbTables, List<string> tableNames, string templatePath)
         {
+            const string tagName4DatabaseName = "#databasename";
+            const string tagName4TableSchemaName = "#table.schemaname";
+            const string tagName4TableFullName = "#table.fullname";
+
             const string sheetName4TableListTempalte = "#TableListTemplate";
             const string sheetName4TableSchemaTempalte = "#TableSchemaTemplate";
             const string tagName4TableNo = "#table.no";
@@ -40,10 +45,12 @@ namespace JackToolLib.Services
 
 
             // TABLE LIST
-
             // clone tempalte table list sheet & rename sheet
             var tableSheet = workbook.CloneSheet(workbook.GetSheetIndex(sheetName4TableListTempalte));
             workbook.SetSheetName(workbook.NumberOfSheets - 1, "Table List");
+
+            // DatabaseName
+            tableSheet.SetFirstMatchCellContent(tagName4DatabaseName, DbTables.FirstOrDefault().DatabaseName);
 
             var tableIndex = 1;
             foreach (var table in DbTables.Where(t => tableNames.Contains(t.TableName)))
@@ -56,7 +63,9 @@ namespace JackToolLib.Services
 
                     var newRowIndex = noLocation.Value.Y;
                     tableSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4TableNo, tableIndex.ToString());
+                    tableSheet.SetFirstMatchCellHyperlinkInRow(newRowIndex, tagName4TableSchemaName, table.SchemaName, tableIndex.ToString());
                     tableSheet.SetFirstMatchCellHyperlinkInRow(newRowIndex, tagName4TableName, table.TableName, tableIndex.ToString());
+                    tableSheet.SetFirstMatchCellHyperlinkInRow(newRowIndex, tagName4TableFullName, table.TableFullName, tableIndex.ToString());
                     tableSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4TableDesc, table.Description);
                     tableSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4TableView, table.IsViewTable ? "V" : "");
                     tableSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4TableType, table.TableType.ToTitleCase());
@@ -80,7 +89,9 @@ namespace JackToolLib.Services
                 workbook.SetSheetName(workbook.NumberOfSheets - 1, tableIndex.ToString()/*table.TableName*/);
 
                 // table name & description
+                schemaSheet.SetFirstMatchCellContent(tagName4TableSchemaName, table.SchemaName);
                 schemaSheet.SetFirstMatchCellContent(tagName4TableName, table.TableName);
+                schemaSheet.SetFirstMatchCellContent(tagName4TableFullName, table.TableFullName);
                 schemaSheet.SetFirstMatchCellContent(tagName4TableDesc, table.Description);
                 schemaSheet.SetFirstMatchCellContent(tagName4TableView, table.IsViewTable ? "V" : "");
                 schemaSheet.SetFirstMatchCellContent(tagName4TableType, table.TableType.ToTitleCase());
@@ -120,14 +131,21 @@ namespace JackToolLib.Services
             workbook.RemoveSheetAt(workbook.GetSheetIndex(sheetName4TableListTempalte));
             workbook.RemoveSheetAt(workbook.GetSheetIndex(sheetName4TableSchemaTempalte));
 
-            // save as another excel file
-            using (FileStream stream = new FileStream(outputDocPath, FileMode.Create, FileAccess.Write))
-            {
-                workbook.Write(stream);
-            }
+            //var outputDocPath = $@"D:\schema.xlsx";
 
+            // save as another excel file
+            //using (FileStream stream = new FileStream(outputDocPath, FileMode.Create, FileAccess.Write))
+            //{
+            //    workbook.Write(stream);
+            //}
+
+            // save to memory stream and return byte array
+            using var memoryStream = new MemoryStream();
+            workbook.Write(memoryStream);
             // set null 
             workbook = null;
+
+            return memoryStream.ToArray();
         }
     }
 }

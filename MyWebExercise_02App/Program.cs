@@ -15,6 +15,7 @@ builder.Services.AddRazorComponents()
 
 
 builder.Services.AddScoped<IDatabaseRepository, DatabaseRepository>();
+builder.Services.AddScoped<IExcelService, ExcelService>();
 builder.Services.AddScoped<BreadcrumbService>();
 builder.Services.AddTransient<MenuService>();
 

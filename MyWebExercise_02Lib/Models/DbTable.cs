@@ -9,7 +9,10 @@ namespace JackToolLib.Models
     public class DbTable
     {
         // Properties
+        public string DatabaseName { get; set; }
+        public string SchemaName { get; set; }
         public string TableName { get; set; }
+        public string TableFullName { get; set; } // SchemaName.TableName
 
         public string Description { get; set; }
 
