@@ -14,7 +14,6 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\JackToolLib\JackToolLib.csproj" />
     <ProjectReference Include="..\MyWebExercise_02Lib\JackToolLib.csproj" />
   </ItemGroup>
 </Project>
