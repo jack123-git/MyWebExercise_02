@@ -7,8 +7,6 @@
 <MudText Typo="Typo.h3" GutterBottom="true">Hello, world!</MudText>
 <MudText Class="mb-8">Welcome to your new app, powered by MudBlazor and the .NET 10 Template!</MudText>
 
-<ExportTableSchemaPage></ExportTableSchemaPage>
-@*
 <MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Start))">Start</MudButton>
 <MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.End))">End</MudButton>
 <MudButton Variant="Variant.Text" OnClick="@(() => OpenDrawer(Anchor.Top))">Top</MudButton>
@@ -127,4 +125,4 @@
         state = result == null ? "Canceled" : "Deleted!";
         StateHasChanged();
     }
-} *@
+}
