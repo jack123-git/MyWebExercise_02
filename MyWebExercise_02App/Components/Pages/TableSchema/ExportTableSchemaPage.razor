@@ -11,9 +11,9 @@
 <MudText Typo="Typo.h5">匯出TableSchema</MudText>
 <MudDivider></MudDivider>
 
-<MudPaper Class="pa-16 ma-2" Outlined="true">
-    <div class="d-flex gap-2">
-        <MudSelect @bind-Value="selectedDbName" Label="選取資料庫" HelperText="選取資料庫" OpenIcon="@Icons.Material.Filled.LocalDrink" AdornmentColor="Color.Secondary">
+<MudPaper Class="pa-8 ma-2" Outlined="true">
+    <div class="d-flex gap-4" style="width:40%;">
+        <MudSelect @bind-Value="selectedDbName" Label="選取資料庫" HelperText="選取資料庫" OpenIcon="@Icons.Material.Filled.FactCheck" AdornmentColor="Color.Secondary">
             @foreach (string item in databases)
             {
                 <MudSelectItem Value="@item">@item</MudSelectItem>
@@ -22,12 +22,72 @@
         <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="ExportSchema">
             匯出Schema
         </MudButton>
+
+    </div>
+    <div class="d-flex justify-center pa-4">
+        @if (_uploading)
+        {
+            <MudPaper Class="pa-4 mud-width-full flex-wrap d-flex align-center justify-center mud-border-secondary mud-text-secondary p-2"
+                      Style="background-color:inherit;width:500px;height:100px;"
+                      Outlined="true">
+
+                    <MudProgressLinear Class="mx-2" Color="Color.Tertiary" Size="Size.Large" Value="_uploadValue" Min="_uploadMin" Max="_uploadMax" />
+                    @* <p>@ProgressMessage</p> *@
+                <MudText Typo="Typo.body1">@ProgressMessage</MudText>
+            </MudPaper>
+        }
     </div>
 </MudPaper>
 
 @code {
+    // // Export Table Schema 
+    // private string selectedDbName;
+    // private List<string> databases = new List<string>();
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     databases = (await DatabaseRepository.GetDatabaseNamesAsync()).ToList();
+    // }
+
+    // private async Task ExportSchema()
+    // {
+    //     if (string.IsNullOrEmpty(selectedDbName))
+    //     {
+    //         // 顯示錯誤訊息，請選擇資料庫
+    //         return;
+    //     }
+
+    //     string filePath = $"template/my_template.xlsx";
+    //     string templatePath = Path.Combine(Environment.WebRootPath, filePath);
+    //     if (!File.Exists(templatePath))
+    //     {
+    //         Snackbar.Add("template 檔案不存在", Severity.Error);
+    //         return;
+    //     }
+        
+    //     var schema = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
+    //     var tableNames = schema.Select(s => s.TableName).ToList();
+    //     var outputPath = $"{selectedDbName}_schema.xlsx";
+    //     // 使用ExcelService匯出Excel檔案
+    //     var fileContent = await ExcelService.GenerateDocumentAsync(schema, tableNames, templatePath);
+
+    //     // 呼叫 JS 下載
+    //     await JS.InvokeVoidAsync("downloadFile", outputPath,
+    //         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    //         fileContent);
+    // }
+}
+
+@code 
+{
+    // Export Table Schema
     private string selectedDbName;
     private List<string> databases = new List<string>();
+    private bool _uploading;
+    private readonly int _uploadMin = 0;
+    private readonly int _uploadMax = 100;
+    private int _uploadValue = 0;
+    private string ProgressMessage = "資料讀取中...";
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,13 +109,25 @@
             Snackbar.Add("template 檔案不存在", Severity.Error);
             return;
         }
-        
+
+        _uploading = true;
+        StateHasChanged();
+
         var schema = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
         var tableNames = schema.Select(s => s.TableName).ToList();
         var outputPath = $"{selectedDbName}_schema.xlsx";
-        // 使用ExcelService匯出Excel檔案
-        var fileContent = await ExcelService.GenerateDocumentAsync(schema, tableNames, templatePath);
 
+        // 使用ExcelService匯出Excel檔案
+        var progress = new Progress<(int current, int total)>(report =>
+        {
+            _uploadValue = Convert.ToInt32(report.current / (double)report.total * 100);
+            ProgressMessage = $"已完成 {report.current}/{report.total} 個工作表";
+            InvokeAsync(StateHasChanged);
+        });
+
+        var fileContent = await ExcelService.GenerateDocumentAsync(schema, tableNames, templatePath, progress);
+
+        _uploading = false;
         // 呼叫 JS 下載
         await JS.InvokeVoidAsync("downloadFile", outputPath,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

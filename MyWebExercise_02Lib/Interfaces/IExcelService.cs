@@ -7,6 +7,6 @@ namespace JackToolLib.Interfaces
 {
     public interface IExcelService
     {
-        Task<byte[]> GenerateDocumentAsync(List<DbTable> DbTables, List<string> tableNames, string templatePath);
+        Task<byte[]> GenerateDocumentAsync(List<DbTable> DbTables, List<string> tableNames, string templatePath, IProgress<(int current, int total)> progress);
     }
 }

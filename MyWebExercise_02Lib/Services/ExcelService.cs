@@ -10,7 +10,8 @@ namespace JackToolLib.Services
 {
     public class ExcelService: IExcelService
     {
-        public async Task<byte[]> GenerateDocumentAsync(List<DbTable> DbTables, List<string> tableNames, string templatePath)
+        // IProgress<(int current, int total)> progress 用來回傳匯出進度
+        public async Task<byte[]> GenerateDocumentAsync(List<DbTable> DbTables, List<string> tableNames, string templatePath, IProgress<(int current, int total)> progress)
         {
             const string tagName4DatabaseName = "#databasename";
             const string tagName4TableSchemaName = "#table.schemaname";
@@ -41,8 +42,6 @@ namespace JackToolLib.Services
             {
                 workbook = new XSSFWorkbook(fs);
             }
-
-
 
             // TABLE LIST
             // clone tempalte table list sheet & rename sheet
@@ -80,6 +79,8 @@ namespace JackToolLib.Services
 
 
             // TABLE SCHEMA SHEETS
+            int total = tableNames.Count;
+            int current = 0;
 
             tableIndex = 1;
             foreach (var table in DbTables.Where(t => tableNames.Contains(t.TableName)))
@@ -124,7 +125,10 @@ namespace JackToolLib.Services
                 // remove the last template row
                 schemaSheet.RemoveFirstMatchRow(tagName4ColumnNo);
 
+                await Task.Delay(75);
+                current++;
                 tableIndex++;
+                progress?.Report((current, total));
             }
 
             // remove template sheet
