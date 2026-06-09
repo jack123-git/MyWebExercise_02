@@ -25,15 +25,15 @@
 
     </div>
     <div class="d-flex justify-center pa-4">
-        @if (_uploading)
+        @if (_exporting)
         {
             <MudPaper Class="pa-4 mud-width-full flex-wrap d-flex align-center justify-center mud-border-secondary mud-text-secondary p-2"
                       Style="background-color:inherit;width:500px;height:100px;"
                       Outlined="true">
 
-                    <MudProgressLinear Class="mx-2" Color="Color.Tertiary" Size="Size.Large" Value="_uploadValue" Min="_uploadMin" Max="_uploadMax" />
+                    <MudProgressLinear Class="mx-2" Color="Color.Tertiary" Size="Size.Large" Value="_processbarValue" Min="_processbarMin" Max="_processbarMax" />
                     @* <p>@ProgressMessage</p> *@
-                <MudText Typo="Typo.body1">@ProgressMessage</MudText>
+                <MudText Typo="Typo.body1">@_progressMessage</MudText>
             </MudPaper>
         }
     </div>
@@ -83,11 +83,11 @@
     // Export Table Schema
     private string selectedDbName;
     private List<string> databases = new List<string>();
-    private bool _uploading;
-    private readonly int _uploadMin = 0;
-    private readonly int _uploadMax = 100;
-    private int _uploadValue = 0;
-    private string ProgressMessage = "資料讀取中...";
+    private bool _exporting;
+    private readonly int _processbarMin = 0;
+    private readonly int _processbarMax = 100;
+    private int _processbarValue = 0;
+    private string _progressMessage = "資料讀取中...";
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,7 +110,7 @@
             return;
         }
 
-        _uploading = true;
+        _exporting = true;
         StateHasChanged();
 
         var schema = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
@@ -120,14 +120,14 @@
         // 使用ExcelService匯出Excel檔案
         var progress = new Progress<(int current, int total)>(report =>
         {
-            _uploadValue = Convert.ToInt32(report.current / (double)report.total * 100);
-            ProgressMessage = $"已完成 {report.current}/{report.total} 個工作表";
+            _processbarValue = Convert.ToInt32(report.current / (double)report.total * 100);
+            _progressMessage = $"已完成 {report.current}/{report.total} 個工作表";
             InvokeAsync(StateHasChanged);
         });
 
         var fileContent = await ExcelService.GenerateDocumentAsync(schema, tableNames, templatePath, progress);
 
-        _uploading = false;
+        _exporting = false;
         // 呼叫 JS 下載
         await JS.InvokeVoidAsync("downloadFile", outputPath,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
