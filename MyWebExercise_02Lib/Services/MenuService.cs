@@ -20,8 +20,9 @@ namespace JackToolLib.Services
                     Title = "資料庫作業",
                     SubMenu = new List<NavMenuItem>
                     {
-                        new NavMenuItem { Title = "匯出TableSchema", Href = "/exportdbschema", Icon = Icons.Material.Filled.ContactEmergency }
-                        //, new NavMenuItem { Title = "單位代碼設定", Href = "/departments", Icon = Icons.Material.Filled.Business }
+                        new NavMenuItem { Title = "TableSchema處理", Href = "/exportdbschema", Icon = Icons.Material.Filled.ContactEmergency }
+                        ,new NavMenuItem { Title = "Sp處理", Href = "/generatesp", Icon = Icons.Material.Filled.ContactEmergency }
+                        //, new NavMenuItem { Title = "Template測試", Href = "/generate-letter", Icon = Icons.Material.Filled.Business }
                         //, new NavMenuItem { Title = "職稱代碼設定", Href = "/posts", Icon = Icons.Material.Filled.Work }
                     }
                 }

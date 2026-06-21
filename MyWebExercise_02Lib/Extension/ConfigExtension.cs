@@ -1,5 +1,5 @@
 ﻿using System.Runtime.InteropServices;
-using System.Security;
+//using System.Security;
 using System.Text;
 
 namespace Microsoft.Extensions.Configuration
@@ -23,9 +23,9 @@ namespace Microsoft.Extensions.Configuration
                 if (string.IsNullOrEmpty(connectionString)) 
                     result = string.Empty;
 
-                if (IsBase64String(connectionString))
-                    result = Marshal.PtrToStringUni(Marshal.SecureStringToGlobalAllocUnicode(Base64DeCode(connectionString, Encoding.UTF8)));
-                else
+                //if (IsBase64String(connectionString))
+                //    result = Marshal.PtrToStringUni(Marshal.SecureStringToGlobalAllocUnicode(Base64DeCode(connectionString, Encoding.UTF8)));
+                //else
                     result = connectionString;
             }
             catch (Exception)
@@ -42,16 +42,16 @@ namespace Microsoft.Extensions.Configuration
         /// <param name="value"></param>
         /// <param name="encode"></param>
         /// <returns></returns>
-        private static SecureString Base64DeCode(string value, Encoding encode)
-        {
-            byte[] bytes = Convert.FromBase64String(value);
-            SecureString secureString = new SecureString();
-            foreach (char ch in encode.GetString(bytes).ToCharArray())
-                secureString.AppendChar(ch);
-            secureString.MakeReadOnly();
+        //private static SecureString Base64DeCode(string value, Encoding encode)
+        //{
+        //    byte[] bytes = Convert.FromBase64String(value);
+        //    SecureString secureString = new SecureString();
+        //    foreach (char ch in encode.GetString(bytes).ToCharArray())
+        //        secureString.AppendChar(ch);
+        //    secureString.MakeReadOnly();
 
-            return secureString;
-        }
+        //    return secureString;
+        //}
 
         /// <summary>
         /// 用Base64進行編碼

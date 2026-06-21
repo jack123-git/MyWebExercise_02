@@ -1,0 +1,53 @@
+﻿@page "/generate-letter"
+@inject TextGenerator Generator
+@inject ITemplateRepository TemplateRepository;
+
+<PageTitle>產生信件內容</PageTitle>
+
+
+
+<div class="d-flex flex-column gap-2">
+    <MudText Typo="Typo.h5">產生信件內容</MudText>
+    <MudDivider></MudDivider>
+
+    <div class="d-flex mb-4">
+    <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="Generate">
+        產生文字
+    </MudButton>    
+    </div>
+</div>
+
+<hr />
+
+<textarea style="width:350px;height:160px;">@GeneratedText</textarea>
+@* <MudTextField T="string" Lines="30" Text="@GeneratedText" style="width:350px;height:160px;">
+    
+</MudTextField> *@
+
+@* <MudTextField T="string"
+              Label="Fixed (3 lines)"
+              Variant="Variant.Outlined"
+              Lines="10"
+              Sizing="InputSizing.Fixed"
+              Text="@GeneratedText" /> *@
+
+<div>@GeneratedText</div>
+
+@code {
+    private string GeneratedText;
+
+    private async Task Generate()
+    {
+        var model = new LetterModel()
+        {
+            RecipientName = "王小明",
+            ProductName = "智慧手錶",
+            PurchaseDate = DateTime.Today,
+            SenderName = "Blazor商城",
+        };
+
+        // var template = await TemplateRepository.GetTextTestTemplateAsync();
+
+        GeneratedText = await Generator.GenerateTextAsync(model);
+    }
+}
