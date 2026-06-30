@@ -104,7 +104,7 @@ namespace JackToolLib.Services
                         schemaSheet.CopyRow(noLocation.Value.Y, noLocation.Value.Y + 1);
 
                         var newRowIndex = noLocation.Value.Y;
-                        schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnNo, column.No.ToString());
+                        schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnNo, column.ColumnNo.ToString());
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnName, column.ColumnName);
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnPK, column.IsPrimaryKey ? "V" : "");
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnFK, column.IsForeignKey ? "V" : "");

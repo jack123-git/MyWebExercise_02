@@ -8,7 +8,7 @@ namespace JackToolLib.Models
 {
     public class DbColumn
     {
-        public int No { get; set; }
+        public int ColumnNo { get; set; }
         public string DatabaseName { get; set; }
         public string SchemaName { get; set; }
         public string TableName { get; set; }

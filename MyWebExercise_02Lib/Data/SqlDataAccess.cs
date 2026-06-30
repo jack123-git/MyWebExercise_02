@@ -109,7 +109,7 @@ namespace JackToolLib.Data
                     )
                     END AS 'TableDescription'
                     ,tb.TABLE_TYPE AS 'TableType'
-                    ,col.ORDINAL_POSITION AS 'No'
+                    ,col.ORDINAL_POSITION AS 'ColumnNo'
                     ,col.COLUMN_NAME AS 'ColumnName'
                     ,col.DATA_TYPE AS 'DataType'
                     ,CASE 
