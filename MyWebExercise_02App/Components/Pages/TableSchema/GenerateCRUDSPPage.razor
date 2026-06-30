@@ -1,5 +1,6 @@
 ﻿@page "/generatesp"
 @inject IDatabaseRepository DatabaseRepository
+@inject ISnackbar Snackbar
 
 <PageTitle>Sp處理</PageTitle>
 
@@ -22,10 +23,31 @@
                     <MudSelectItem Value="@item">@item</MudSelectItem>
                 }
             </MudSelect>
-            <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP" Class="mt-3" Style="height:35px">
+            <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GetTableList" Class="mt-3" Style="height:35px">
                 讀取
             </MudButton>
         </MudPaper>
+        @if (tables.Count > 0)
+        {
+            <div style="width:40%;">
+                <MudText Typo="Typo.body1" Class="pt-4">資料表</MudText>
+                <MudTable T="DbTable" Items="@tables" MultiSelection="true" SelectionChangeable="true" Hover="true" Dense
+                          @bind-SelectedItems="selectedItems" SelectOnRowClick="true">
+                    <HeaderContent>
+                        <MudTh>資料表</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Name">@context.TableName</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                    </PagerContent>
+                    <FooterContent>
+                        <MudTd colspan="5">Select All</MudTd>
+                    </FooterContent>
+                </MudTable>
+            </div>
+        }
     </MudCollapse>
     <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP">
         產生SP
@@ -38,10 +60,23 @@
     private string selectedDbName;
     private List<string> databaseNames = new List<string>();
     private List<DbTable> tables = new List<DbTable>();
+    private HashSet<DbTable> selectedItems = new HashSet<DbTable>();
 
     protected override async Task OnInitializedAsync()
     {
         databaseNames = (await DatabaseRepository.GetDatabaseNamesAsync()).ToList();
+    }
+
+    private async Task GetTableList()
+    {
+        if (string.IsNullOrEmpty(selectedDbName))
+        {
+            // 顯示錯誤訊息，請選擇資料庫
+            Snackbar.Add("請選擇資料庫", Severity.Error);
+            return;
+        }
+        tables = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
+        selectedItems = tables.ToHashSet();
     }
 
     private async Task GenerateSP()
