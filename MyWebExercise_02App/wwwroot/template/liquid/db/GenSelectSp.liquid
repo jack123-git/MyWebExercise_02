@@ -1,0 +1,39 @@
+USE [{{ table.Database_name }}]
+GO
+
+/****** Object:  StoredProcedure [dbo].[TP_SELECT_{{ table.Table_name }}]    Script Date: 2024/11/15 05:50:12 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [DataTrans].[LN1011](
+	[LN1011id] [varchar](10) NOT NULL,
+	[LN1011no] [varchar](20) NULL,
+	[LN1011scale] [varchar](3) NULL,
+	[LN1011RMname] [nvarchar](10) NULL,
+	[TrimData] [nvarchar](max) NULL,
+ CONSTRAINT [PK_DataTrans.LN1011] PRIMARY KEY CLUSTERED 
+(
+	[LN1011id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'統一編號' , @level0type=N'SCHEMA',@level0name=N'DataTrans', @level1type=N'TABLE',@level1name=N'LN1011', @level2type=N'COLUMN',@level2name=N'LN1011id'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'授信戶號' , @level0type=N'SCHEMA',@level0name=N'DataTrans', @level1type=N'TABLE',@level1name=N'LN1011', @level2type=N'COLUMN',@level2name=N'LN1011no'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'規模' , @level0type=N'SCHEMA',@level0name=N'DataTrans', @level1type=N'TABLE',@level1name=N'LN1011', @level2type=N'COLUMN',@level2name=N'LN1011scale'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'RM姓名' , @level0type=N'SCHEMA',@level0name=N'DataTrans', @level1type=N'TABLE',@level1name=N'LN1011', @level2type=N'COLUMN',@level2name=N'LN1011RMname'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'存放因長度過長被截斷欄位完整資料' , @level0type=N'SCHEMA',@level0name=N'DataTrans', @level1type=N'TABLE',@level1name=N'LN1011', @level2type=N'COLUMN',@level2name=N'TrimData'
+GO
+
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'法金NBS授信戶資料' , @level0type=N'SCHEMA',@level0name=N'DataTrans', @level1type=N'TABLE',@level1name=N'LN1011'
+GO

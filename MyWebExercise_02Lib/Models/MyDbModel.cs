@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using DotLiquid;
 
 namespace JackToolLib.Models
 {
-    public class MyDbModel
+    public class MyDbModel : Drop
     {
         public string NameSpace { get; set; }
+        //public string DbName { get { return Tables.FirstOrDefault()?.DatabaseName ?? string.Empty; } }
         public List<DbTable> Tables { get; set; }
         public List<string> Usings { get; set; } = new List<string>();
 
@@ -15,20 +17,11 @@ namespace JackToolLib.Models
             var dict = new Dictionary<string, object>();
 
             dict["NameSpace"] = NameSpace;
+            //dict["DbName"] = DbName;
 
-            #region using
-            var dictUsings = new List<Dictionary<string, object>>();
-            if (Usings != null)
-            {
-                Dictionary<string, object> dictUsing;
-                foreach (var nameSpace in Usings)
-                {
-                    dictUsing = new Dictionary<string, object>();
-                    dictUsing["NameSpace"] = nameSpace;
-                    dictUsings.Add(dictUsing);
-                }
-            }
-            dict["Usings"] = dictUsings;
+            #region using List 輸出 單一using字串
+            var usingArray = Usings.ToArray();
+            dict["Usings"] = usingArray;
             #endregion
 
             #region dictTables

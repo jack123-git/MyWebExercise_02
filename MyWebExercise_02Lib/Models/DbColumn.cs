@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DotLiquid;
 
 namespace JackToolLib.Models
 {
-    public class DbColumn
+    public class DbColumn : Drop
     {
         public int ColumnNo { get; set; }
         public string DatabaseName { get; set; }
@@ -14,13 +15,63 @@ namespace JackToolLib.Models
         public string TableName { get; set; }
         public string TableFullName { get; set; } // SchemaName.TableName
         public string TableDescription { get; set; }
-
         public string TableType { get; set; }
-
         public string ColumnName { get; set; }
-
+        public string CsAttribute {
+            get {
+                return DataType switch
+                {
+                    "char" => $"[{DataType}_({Length})]",
+                    "varchar" => $"[{DataType}_({Length})]",
+                    "text" => $"[Varchar_(max)]",
+                    "nchar" => $"[{DataType}_({Length})]",
+                    "nvarchar" => $"[{DataType}_({Length})]",
+                    "ntext" => $"[Nvarchar_(max)]",
+                    //"bit" => IsNullable ? "bool?" : "bool",
+                    //"tinyint" => IsNullable ? "byte?" : "byte",
+                    //"smallint" => IsNullable ? "short?" : "short",
+                    //"int" => IsNullable ? "int?" : "int",
+                    //"bigint" => IsNullable ? "long?" : "long",
+                    "decimal" => $"[{DataType}_({NumericPrecision},{NumericScale})]",
+                    //"numeric" => IsNullable ? "decimal?" : "decimal",
+                    //"smallmoney" => IsNullable ? "decimal?" : "decimal",
+                    //"money" => IsNullable ? "decimal?" : "decimal",
+                    //"real" => IsNullable ? "float?" : "float",
+                    //"float" => IsNullable ? "double?" : "double",
+                    //"datetime" => IsNullable ? "DateTime?" : "DateTime",
+                    //"varbinary" => IsNullable ? "byte[]?" : "byte[]",
+                    _ => ""
+                };
+            }
+        }
+        public string CsDatatype {
+            get 
+            { 
+                return DataType switch { 
+                    "char" => IsNullable?"string?": "string",
+                    "varchar" => IsNullable ? "string?" : "string",
+                    "text" => IsNullable ? "string?" : "string",
+                    "nchar" => IsNullable ? "string?" : "string",
+                    "nvarchar" => IsNullable ? "string?" : "string",
+                    "ntext" => IsNullable ? "string?" : "string",
+                    "bit" => IsNullable ? "bool?" : "bool",                    
+                    "tinyint" => IsNullable ? "byte?" : "byte",
+                    "smallint" => IsNullable ? "short?" : "short",
+                    "int" => IsNullable ? "int?" : "int",
+                    "bigint" => IsNullable ? "long?" : "long",
+                    "decimal" => IsNullable ? "decimal?" : "decimal",
+                    "numeric" => IsNullable ? "decimal?" : "decimal",
+                    "smallmoney" => IsNullable ? "decimal?" : "decimal",
+                    "money" => IsNullable ? "decimal?" : "decimal",
+                    "real" => IsNullable ? "float?" : "float",
+                    "float" => IsNullable ? "double?" : "double",
+                    "datetime" => IsNullable ? "DateTime?" : "DateTime",
+                    "varbinary" => IsNullable ? "byte[]?" : "byte[]",
+                    _ => ""
+                }; 
+            }
+        }
         public string DataType { get; set; }
-
         public string FullDataType
         {
             get

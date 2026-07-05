@@ -1,6 +1,10 @@
 ﻿@page "/generatesp"
+@inject IWebHostEnvironment Environment
 @inject IDatabaseRepository DatabaseRepository
+@inject IMiniWordService MiniWordService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Sp處理</PageTitle>
 
@@ -16,6 +20,15 @@
         </MudRadioGroup>
     </div>
     <MudCollapse Expanded="@(SelectedSource == "db")">
+        <MudTextField Typo="Typo.body1" Class="py-4" Label="命名空間" Style="width:300px;" @bind-Value="classNameSpace" />
+        <MudSelect @bind-Value="selectedTemplateFile" Style="width:300px;" Label="選取範本" HelperText="選取範本" OpenIcon="@Icons.Material.Filled.FactCheck" AdornmentColor="Color.Secondary" Dense>
+            @foreach (var item in templateFiles)
+            {
+                <MudSelectItem Value="@item.Value">@item.Key</MudSelectItem>
+            }
+        </MudSelect>
+
+
         <MudPaper class="d-flex gap-4" Style="width:20%;height:55px">
             <MudSelect @bind-Value="selectedDbName" Label="選取資料庫" HelperText="選取資料庫" OpenIcon="@Icons.Material.Filled.FactCheck" AdornmentColor="Color.Secondary" Dense>
                 @foreach (string item in databaseNames)
@@ -42,15 +55,15 @@
                     <PagerContent>
                         <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
                     </PagerContent>
-                    <FooterContent>
-                        <MudTd colspan="5">Select All</MudTd>
-                    </FooterContent>
                 </MudTable>
             </div>
         }
     </MudCollapse>
-    <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP">
-        產生SP
+    <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP" Disabled="!IsCanRun">
+        產生Word文件
+    </MudButton>
+    <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateCSharpClass" Disabled="!IsCanRun">
+        產生Zip檔案
     </MudButton>
 </MudPaper>
 
@@ -61,10 +74,26 @@
     private List<string> databaseNames = new List<string>();
     private List<DbTable> tables = new List<DbTable>();
     private HashSet<DbTable> selectedItems = new HashSet<DbTable>();
+    private bool IsCanRun = false;
+    private string classNameSpace = "Common.Model.DataTrans";
+    private string selectedTemplateFile;
+    private Dictionary<string, string> templateFiles = new Dictionary<string, string>();
 
     protected override async Task OnInitializedAsync()
     {
         databaseNames = (await DatabaseRepository.GetDatabaseNamesAsync()).ToList();
+
+        string templatePath = Path.Combine(Environment.WebRootPath, "template/liquid");
+        if (Directory.Exists(templatePath))
+        {
+            templateFiles = Directory.GetFiles(templatePath, "*.liquid", SearchOption.AllDirectories)
+                .ToDictionary(filePath => Path.GetFileName(filePath),
+                filePath => filePath
+                );
+
+            if (templateFiles.Count > 0)
+                selectedTemplateFile = templateFiles.FirstOrDefault().Key;
+        }
     }
 
     private async Task GetTableList()
@@ -77,10 +106,17 @@
         }
         tables = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
         selectedItems = tables.ToHashSet();
+        IsCanRun = true;
     }
 
     private async Task GenerateSP()
     {
+        if (string.IsNullOrEmpty(selectedDbName))
+        {
+            // 顯示錯誤訊息，請選擇資料庫
+            Snackbar.Add("請選擇資料庫", Severity.Error);
+            return;
+        }
 
         if (SelectedSource == "db")
         {
@@ -93,43 +129,121 @@
         await GenerateSPContent();
 
 
-        //     if (string.IsNullOrEmpty(selectedDbName))
-        //     {
-        //         // 顯示錯誤訊息，請選擇資料庫
-        //         return;
-        //     }
+        string filePath = $"template/test_wordTemplate.docx";
+        string templatePath = Path.Combine(Environment.WebRootPath, filePath);
+        if (!File.Exists(templatePath))
+        {
+            Snackbar.Add("template 檔案不存在", Severity.Error);
+            return;
+        }
 
-        //     string filePath = $"template/my_template.xlsx";
-        //     string templatePath = Path.Combine(Environment.WebRootPath, filePath);
-        //     if (!File.Exists(templatePath))
-        //     {
-        //         Snackbar.Add("template 檔案不存在", Severity.Error);
-        //         return;
-        //     }
+        var usings = new List<string>
+        {
+            "using System;",
+            "using System.Collections.Generic;",
+            "using System.Text;"
+        };
 
-        //     _exporting = true;
-        //     StateHasChanged();
+        var exportModel = new MyDbModel()
+        {
+            NameSpace = "Common.Model.DataTrans",
+            Usings = usings,
+            Tables = tables.Where(t => selectedItems.Contains(t)).ToList()
+        };
 
-        //     var schema = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
-        //     var tableNames = schema.Select(s => s.TableName).ToList();
-        //     var outputPath = $"{selectedDbName}_schema.xlsx";
+        var exportData = exportModel.ToTemplateDictionary();
 
-        //     // 使用ExcelService匯出Excel檔案
-        //     var progress = new Progress<(int current, int total)>(report =>
-        //     {
-        //         _processbarValue = Convert.ToInt32(report.current / (double)report.total * 100);
-        //         _progressMessage = $"已完成 {report.current}/{report.total} 個工作表";
-        //         InvokeAsync(StateHasChanged);
-        //     });
+        var fileContent = await MiniWordService.GenerateWordDocumentAsync(templatePath, exportData);
+        var outputPath = $"{selectedDbName}_template.docx";
 
-        //     var fileContent = await ExcelService.GenerateDocumentAsync(schema, tableNames, templatePath, progress);
-
-        //     _exporting = false;
-        //     // 呼叫 JS 下載
-        //     await JS.InvokeVoidAsync("downloadFile", outputPath,
-        //         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        //         fileContent);
+        await JS.InvokeVoidAsync("downloadFile", outputPath,
+             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            fileContent);
     }
+
+    private async Task GenerateCSharpClass()
+    {
+        if (string.IsNullOrEmpty(selectedDbName))
+        {
+            // 顯示錯誤訊息，請選擇資料庫
+            Snackbar.Add("請選擇資料庫", Severity.Error);
+            return;
+        }
+        var usings = new List<string>
+        {
+            "using System;",
+            "using System.Collections.Generic;",
+            "using System.Text;"
+        };
+        var exportModel = new MyDbModel()
+        {
+            NameSpace = classNameSpace,
+            Usings = usings,
+            Tables = tables.Where(t => selectedItems.Contains(t)).ToList()
+        };
+
+        var httpContext = HttpContextAccessor.HttpContext;
+
+        //string filePath = $"template/liquid/cSharp/class.liquid";
+        //string templatePath = Path.Combine(Environment.WebRootPath, filePath);
+        string templatePath = templateFiles.GetValueOrDefault(Path.GetFileName(selectedTemplateFile));
+        if (!File.Exists(templatePath))
+        {
+            Snackbar.Add("template 檔案不存在", Severity.Error);
+            return;
+        }
+
+        var templateContent = await File.ReadAllTextAsync(templatePath);
+        Template template = Template.Parse(templateContent);
+
+        var files = new Dictionary<string, string>();
+        foreach (var table in exportModel.Tables)
+        {
+            var fileContent = template.Render(Hash.FromAnonymousObject(new { usings = exportModel.Usings, name_space = exportModel.NameSpace, table = table }));
+            var templateNameWitoutExtension = Path.GetFileNameWithoutExtension(templatePath);
+            var extensionName = GetSubFilename(templateNameWitoutExtension) == "sql" ? $"_{templateNameWitoutExtension}" : "";
+            var downloadFile = $"{table.TableName}{extensionName}.{GetSubFilename(templateNameWitoutExtension)}";
+            files.Add(downloadFile, fileContent);
+        }
+
+        // 建立記憶體串流
+        using var memorystream = new MemoryStream();
+
+        //建立 ZipArchive 物件
+        using (var archive = new System.IO.Compression.ZipArchive(memorystream, System.IO.Compression.ZipArchiveMode.Create, true))
+        {
+            foreach (var file in files)
+            {
+                var zipEntry = archive.CreateEntry(file.Key);
+
+                using var entryStream = zipEntry.Open();
+                using var streamWriter = new StreamWriter(entryStream, System.Text.Encoding.UTF8);
+                await streamWriter.WriteAsync(file.Value);
+            }
+        }
+
+        memorystream.Position = 0;
+        var outputPath = $"{selectedDbName}_{Path.GetFileNameWithoutExtension(templatePath)}.zip";
+        var zipFileContent = memorystream.ToArray();
+        await JS.InvokeVoidAsync("downloadFile", outputPath,
+             "application/zip",
+            zipFileContent);
+    }
+
+    private string GetSubFilename(string fileName)
+    {
+        return fileName switch { 
+            "class" => "cs",
+            "createTableSp" => "sql",
+            _ => "txt"
+        };   
+    }
+
+    // private async Task DownloadFile(string wordFile, Stream fileStream)
+    // {
+    //     using var streamRef = new DotNetStreamReference(stream: fileStream);
+    //     await JS.InvokeVoidAsync("downloadFileFromStream", wordFile, streamRef);
+    // }
 
     private async Task GenerateSPContent()
     {

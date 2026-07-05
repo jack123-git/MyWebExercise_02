@@ -1,0 +1,30 @@
+USE [{{ table.Database_name }}]
+GO
+
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
+{%- for column in table.Columns -%}
+	[{{ column.Column_name }}] {{ column.Full_data_type }}{% if column.Is_nullable == false %} Not{% endif %} NULL,
+{%- endfor -%}
+ CONSTRAINT [PK_{{ table.Table_name }}] PRIMARY KEY CLUSTERED 
+(
+	 {{ table.Primary_keys }}
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+{%- for column in table.Columns -%}
+{%- if column._description != null -%}
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ column.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}', @level2type=N'COLUMN',@level2name=N'{{ column.Column_name }}'
+GO
+{%- endif -%}
+{%- endfor -%}
+
+{%- if table._description != null -%}
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ table.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}'
+GO
+{%- endif -%}

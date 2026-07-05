@@ -1,0 +1,27 @@
+{% for us in usings -%}
+{{ us }}
+{% endfor -%}
+
+namespace {{ name_space }}
+{
+    /// <summary>
+    /// {{ table.Description }}
+    /// </summary>
+    public class {{ table.table_name }}
+    {
+        /// <summary>
+        /// 構造函數
+        /// <summary>
+        public {{ table.table_name }}() { }
+
+        {%- for column in table.Columns -%}
+        /// <summary>
+        /// {{ column.Description }}
+        /// </summary>
+        {{ column.Cs_attribute | capitalize }}
+        public {{ column.cs_datatype }} {{ column.Column_name }} { get; set; }
+
+        {%- endfor -%}
+    }
+}
+

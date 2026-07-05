@@ -1,12 +1,15 @@
-﻿using System;
+﻿using DotLiquid;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DotLiquid;
+using DocumentFormat.OpenXml.Drawing;
 
 namespace JackToolLib.Models
 {
-    public class DbTable
+    public class DbTable : Drop
     {
         // Properties
         public string DatabaseName { get; set; }
@@ -17,6 +20,14 @@ namespace JackToolLib.Models
         public string Description { get; set; }
 
         public string TableType { get; set; }
+
+        public string PrimaryKeys
+        {
+            get
+            {
+                return string.Join(",", Columns.Where(c => c.IsPrimaryKey).Select(s => s.ColumnName + " ASC").ToArray());
+            }
+        }
 
         public bool IsViewTable
         {

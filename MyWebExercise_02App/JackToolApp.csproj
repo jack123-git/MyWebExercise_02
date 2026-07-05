@@ -16,4 +16,10 @@
   <ItemGroup>
     <ProjectReference Include="..\MyWebExercise_02Lib\JackToolLib.csproj" />
   </ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="wwwroot\template\liquid\cSharp\" />
+    <Folder Include="wwwroot\template\liquid\db\" />
+  </ItemGroup>
 </Project>
