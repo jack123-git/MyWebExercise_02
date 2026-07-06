@@ -20,6 +20,5 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\template\liquid\cSharp\" />
-    <Folder Include="wwwroot\template\liquid\db\" />
   </ItemGroup>
 </Project>

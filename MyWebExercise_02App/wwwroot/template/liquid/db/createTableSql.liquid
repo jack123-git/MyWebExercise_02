@@ -6,6 +6,9 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+DROP TABLE IF EXISTS {{ table.Schema_name }}.{{ table.Table_name }};
+GO
+
 CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
 {%- for column in table.Columns -%}
 	[{{ column.Column_name }}] {{ column.Full_data_type }}{% if column.Is_nullable == false %} Not{% endif %} NULL,
