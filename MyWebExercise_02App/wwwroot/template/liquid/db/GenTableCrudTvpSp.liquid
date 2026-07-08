@@ -1,0 +1,190 @@
+﻿USE [{{ table.Database_name }}]
+GO
+
+
+-- Schema建立 {{ table.Schema_name }}
+IF Not EXISTS (SELECT 1 FROM sys.schemas WHERE name = '{{ table.Schema_name }}')
+BEGIN
+    EXEC('CREATE SCHEMA [{{ table.Schema_name }}] AUTHORIZATION [dbo];');    
+END
+
+
+-- {{ table.Schema_name }}.{{ table.Table_name }} Table刪除 
+DROP TABLE IF EXISTS {{ table.Schema_name }}.{{ table.Table_name }};
+GO
+
+
+-- {{ table.Schema_name }}.{{ table.Table_name }} Table建立
+CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
+{%- for column in table.Columns -%}
+	[{{ column.Column_name }}] {{ column.Full_data_type }}{% if column.Is_nullable == false %} Not{% endif %} NULL,
+{%- endfor -%}
+ CONSTRAINT [PK_{{ table.Table_name }}] PRIMARY KEY CLUSTERED 
+(
+	 {{ table.Primary_keys }}
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+
+{%- for column in table.Columns -%}
+{%- if column._description != null -%}
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ column.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}', @level2type=N'COLUMN',@level2name=N'{{ column.Column_name }}'
+GO
+{%- endif -%}
+{%- endfor -%}
+
+{%- if table._description != null -%}
+EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ table.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}'
+GO
+{%- endif -%}
+
+
+-- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select 是否存在，若存在則刪除
+IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Select', 'P') IS NOT NULL
+    DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select;
+GO
+
+-- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select
+create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Select]
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+@{{ column.Column_name }} {{ column.Tvp_datatype }} readonly
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+,@{{ column.Column_name }} {{ column.Tvp_datatype }} readonly
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+as begin  
+   -- 依照條件組合動態SQL，TVP傳入0筆表示不作為條件，多個條件之間為and邏輯
+   declare @_sql nvarchar(max) = ''
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+   if exists (select 1 from @{{ column.Column_name }}) set @_sql = @_sql + ' and exists (select 1 from @{{ column.Column_name }} _tvp where _source.[{{ column.Column_name }}] = _tvp.Value)'
+{%- endif -%}
+{%- endfor -%}
+   if (@_sql <> '') set @_sql = stuff(@_sql, 2, 3, 'where')
+   set @_sql = 'select * from [{{ table.Schema_name }}].[{{ table.Table_name }}] _source' + @_sql
+   
+   -- 執行動態SQL
+   declare @_parameterDefine nvarchar(max) = '
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+    @{{ column.Column_name }} {{ column.Tvp_datatype }} readonly
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+    ,@{{ column.Column_name }} {{ column.Tvp_datatype }} readonly
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}'
+   exec sys.sp_executesql @_sql, @_parameterDefine{%- for column in table.columns -%}{%- if column.Is_primary_key -%} ,@{{ column.Column_name }}=@{{ column.Column_name }}{%- endif -%}{%- endfor %}
+end
+GO
+
+
+-- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete 是否存在，若存在則刪除
+IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete', 'P') IS NOT NULL
+    DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete;
+GO
+
+-- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete
+create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Delete]
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+@{{ column.Column_name }} {{ column.Full_data_type }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+,@{{ column.Column_name }} {{ column.Full_data_type }}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+as begin  
+   --刪除資料
+   delete [{{ table.Schema_name }}].[{{ table.Table_name }}]
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+    where {{ column.Column_name }} = @{{ column.Column_name }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+    and {{ column.Column_name }} = @{{ column.Column_name }}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+end
+GO
+
+
+-- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge 是否存在，若存在則刪除
+IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge', 'P') IS NOT NULL
+    DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge;
+GO
+
+
+-- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge
+create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Merge]
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+@old_{{ column.Column_name }} {{ column.Full_data_type }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+,@old_{{ column.Column_name }} {{ column.Full_data_type }}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+{%- for column in table.columns -%}
+{%- if param == "" -%}
+@{{ column.Column_name }} {{ column.Full_data_type }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+,@{{ column.Column_name }} {{ column.Full_data_type }}
+{%- endif -%}
+{%- endfor -%}
+as begin  
+   --若鍵值舊值為null表示為未更動
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+   if (@old_{{ column.Column_name }} is null) set @old_{{ column.Column_name }} = @{{ column.Column_name }}
+{%- endif -%}
+{%- endfor -%}
+
+   --更新資料
+   update [{{ table.Schema_name }}].[{{ table.Table_name }}] set
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if param == "" -%}
+    [{{ column.Column_name }}] = @{{ column.Column_name }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+    ,[{{ column.Column_name }}] = @{{ column.Column_name }}
+{%- endif -%}
+{%- endfor -%}
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+    where {{ column.Column_name }} = @{{ column.Column_name }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+    and {{ column.Column_name }} = @{{ column.Column_name }}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+   --異動資料0筆的話新增
+   if (@@rowcount = 0)
+   --新增
+   insert into [{{ table.Schema_name }}].[{{ table.Table_name }}]
+      ({%- assign param = "" -%}{%- for column in table.columns -%}{%- if param == "" -%}[{{ column.Column_name }}]{%- assign param = @column.Column_name -%}{%- else -%},[{{ column.Column_name }}]{%- endif -%}{%- endfor -%})
+   values
+      ({%- assign param = "" -%}{%- for column in table.columns -%}{%- if param == "" -%}@{{ column.Column_name }}{%- assign param = @column.Column_name -%}{%- else -%},@{{ column.Column_name }}{%- endif -%}{%- endfor -%})
+end
+GO

@@ -67,10 +67,42 @@ namespace JackToolLib.Models
                     "float" => IsNullable ? "double?" : "double",
                     "datetime" => IsNullable ? "DateTime?" : "DateTime",
                     "varbinary" => IsNullable ? "byte[]?" : "byte[]",
+                    "uniqueidentifier" => $"System.Guid",
                     _ => ""
                 }; 
             }
         }
+        public string  TvpDatatype 
+        {
+            get {
+                return DataType switch
+                {
+                    "char" => $"[dbo].[udt_String]",
+                    "varchar" => $"[dbo].[udt_String]",
+                    "text" => $"[dbo].[udt_String]",
+                    "nchar" => $"[dbo].[udt_String]",
+                    "nvarchar" => $"[dbo].[udt_String]",
+                    "ntext" => $"[dbo].[udt_String]",
+                    "bit" => $"[dbo].[udt_Bit]",
+                    "tinyint" => $"[dbo].[udt_Int]",
+                    "smallint" => $"[dbo].[udt_Int]",
+                    "int" => $"[dbo].[udt_Int]",
+                    "bigint" => $"[dbo].[udt_BigInt]",
+                    "decimal" => $"[dbo].[udt_Decimal]",
+                    "numeric" => $"[dbo].[udt_Decimal]",
+                    "smallmoney" => $"[dbo].[udt_Decimal]",  //不確定
+                    "money" => $"[dbo].[udt_Decimal]",  //不確定
+                    "real" => $"[dbo].[udt_Decimal]",  //不確定
+                    "float" => $"[dbo].[udt_Decimal]",  //不確定
+                    "datetime" => $"[dbo].[udt_Datetime]",
+                    "datetimeoffset" => $"[dbo].[udt_DatetimeOffset]",
+                    "uniqueidentifier" => $"[dbo].[udt_UniqueIdentifier]",
+                    //"varbinary" => $"[dbo].[udt_VarBinary]",
+                    _ => ""
+                };
+            }
+        }
+
         public string DataType { get; set; }
         public string FullDataType
         {

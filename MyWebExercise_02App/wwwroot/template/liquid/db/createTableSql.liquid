@@ -6,6 +6,12 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+-- Schema建立 {{ table.Schema_name }}
+IF Not EXISTS (SELECT 1 FROM sys.schemas WHERE name = '{{ table.Schema_name }}')
+BEGIN
+    EXEC('CREATE SCHEMA [{{ table.Schema_name }}] AUTHORIZATION [dbo];');    
+END
+
 DROP TABLE IF EXISTS {{ table.Schema_name }}.{{ table.Table_name }};
 GO
 
