@@ -1,0 +1,121 @@
+﻿@page "/generate-connectionstring"
+@inject ClipboardService ClipboardService
+
+<PageTitle>連線字串</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudGrid Spacing="2">
+        <MudItem xs="8" Class="px-2">
+            <MudPaper Outlined="false" Class="d-flex align-center gap-2 text-white mud-theme-primary">
+                <MudText Typo="Typo.body1" Class="ml-1" Style="height:20px;width:120px;text-align:right;">Connection名稱</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="height:20px;width:180px;color:white;" @bind-Value="ConnectionName" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4" Class="pt-5"></MudItem>
+        <MudItem xs="2" Class="px-2">
+            <MudPaper Class="d-flex align-center gap-2">
+                <MudText Typo="Typo.body1" Class="pt-4 shades-text text-white" Style="width:120px;text-align:right;">Server</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="width:120px;color:white;" @bind-Value="Server" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="2" Class="px-2">
+            <MudPaper Class="d-flex align-center gap-2">
+                <MudText Typo="Typo.body1" Class="pt-4 shades-text text-white" Style="width:120px;text-align: right;">資料庫名稱</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="width:120px;color:white;" @bind-Value="DbName" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="2" Class="px-2">
+            <MudPaper Class="d-flex align-center gap-2">
+                <MudText Typo="Typo.body1" Class="pt-4 shades-text text-white" Style="width:120px;text-align: right;">帳號</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="width:120px;color:white;" @bind-Value="User" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="2" Class="px-2">
+            <MudPaper Class="d-flex align-center gap-2">
+                <MudText Typo="Typo.body1" Class="pt-4 shades-text text-white" Style="width:120px;text-align: right;">密碼</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="width:120px;color:white;" @bind-Value="PassKey" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4" Class="pt-5">
+            <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenConnectString">
+                產生連線字串
+            </MudButton>
+        </MudItem>
+        <MudItem xs="8" Class="px-2">
+            <MudPaper Outlined="false" Class="d-flex align-center gap-2" Style="@($"background:{Colors.Blue.Lighten1};")">
+                <MudText Typo="Typo.body1" Class="pt-4 shades-text text-white" Style="width:120px;text-align: right;">連線字串</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="width:98%;color:white;" @bind-Value="connectionString" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4" Class="pt-5">
+            <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick=@(args => OnCopyText("decode"))>
+                複製
+            </MudButton>
+            <MudButton Color="Color.Warning" StartIcon="@Icons.Material.Filled.Delete" Variant="@Variant.Outlined" OnClick=@(args => OnClearText("decode"))>
+                清除
+            </MudButton>
+            <MudButton Color="Color.Secondary" StartIcon="@Icons.Custom.Uncategorized.Radioactive" Variant="@Variant.Outlined" OnClick=@(args => OnBase64Text("encode"))>
+                加密
+            </MudButton>
+        </MudItem>
+        <MudItem xs="8" Class="px-2">
+            <MudPaper Outlined="false" Class="d-flex align-center gap-2" Style="@($"background:{Colors.Amber.Darken1};")">
+                <MudText Typo="Typo.body1" Class="pt-4 shades-text text-white" Style="width:120px;text-align: right;">連線字串</MudText>
+                <MudTextField Typo="Typo.body1" Variant="Variant.Text" Class="py-4" Style="width:98%;color:white;" @bind-Value="base64ConnectionString" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="4" Class="pt-5">
+            <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick=@(args => OnCopyText("encode"))>
+                複製
+            </MudButton>
+            <MudButton Color="Color.Warning" StartIcon="@Icons.Material.Filled.Delete" Variant="@Variant.Outlined" OnClick=@(args => OnClearText("encode"))>
+                清除
+            </MudButton>
+            <MudButton Color="Color.Info" StartIcon="@Icons.Custom.Uncategorized.Radioactive" Variant="@Variant.Outlined" OnClick=@(args => OnBase64Text("decode"))>
+                解密
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@code {
+    private string ConnectionName { get; set; } = "CommonDbConnection";
+    private string Server { get; set; } = @".\SQLEXPRESS";
+    private string DbName { get; set; } = "MyDatabase";
+    private string User { get; set; } = "sa";
+    private string PassKey { get; set; } = "p@ssw0rd";
+
+    private string connectionString = "";
+    private string base64ConnectionString = "";
+
+    private void GenConnectString()
+    {
+        var templateContent = @"Data Source={{Server}};User ID={{User}};Password={{Passkey}};Initial Catalog={{Database}};Connect Timeout=30;Encrypt=True;Trust Server Certificate=True;Application Intent=ReadWrite;Multi Subnet Failover=False";
+        Template template = Template.Parse(templateContent);
+        connectionString = template.Render(Hash.FromAnonymousObject(new { ConnectionName = ConnectionName, Server = Server, User = User, Passkey = PassKey }));
+    }
+
+    private async Task OnClearText(string text)
+    {
+        if (text == "decode")
+            connectionString = "";
+        if (text == "encode")
+            base64ConnectionString ="";
+    }
+
+    private async Task OnCopyText(string text)
+    {
+        if (text == "decode")
+            await ClipboardService.CopyToClipboardAsync($"     \"{ConnectionName}\" : \"{connectionString}\"");
+        if (text == "encode")
+            await ClipboardService.CopyToClipboardAsync($"     \"{ConnectionName}\" : \"{base64ConnectionString}\"");
+    }
+
+    private async Task OnBase64Text(string text)
+    {
+        if (text == "decode")
+            connectionString = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(base64ConnectionString));
+        if (text == "encode")
+            base64ConnectionString = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(connectionString));
+    }
+}

@@ -21,6 +21,7 @@ builder.Services.AddScoped<IMiniWordService, MiniWordService>();
 builder.Services.AddScoped<TextGenerator>();
 builder.Services.AddScoped<BreadcrumbService>();
 builder.Services.AddTransient<MenuService>();
+builder.Services.AddScoped<ClipboardService>();
 
 builder.Services.AddHttpContextAccessor();
 

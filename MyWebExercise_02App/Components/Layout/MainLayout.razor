@@ -167,6 +167,7 @@
     // 💡 路由對照字典：將網址英文轉換為中文標題
     private string GetDisplayName(string segment) => segment.ToLower() switch
     {
+        "generate-connectionstring" => "資料庫連線字串",
         "exportdbschema" => "TableSchema處理",
         "generatesp" => "Sp處理",
         "products" => "商品管理",
