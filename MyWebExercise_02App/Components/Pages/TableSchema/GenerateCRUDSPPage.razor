@@ -5,12 +5,22 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IHttpContextAccessor HttpContextAccessor
+@inject IExcelService ExcelService
 
 <PageTitle>Sp處理</PageTitle>
 
 <MudText Typo="Typo.h5">Sp處理</MudText>
 <MudDivider></MudDivider>
 <MudPaper Class="pt-4 pl-4" Outlined="true">
+    <MudPaper Style="width:300px;">
+        <MudTextField Typo="Typo.body1" Class="py-4" Label="命名空間" Style="width:300px;" @bind-Value="classNameSpace" />
+        <MudSelect @bind-Value="selectedTemplateFile" Label="選取範本" HelperText="選取範本" OpenIcon="@Icons.Material.Filled.FactCheck" AdornmentColor="Color.Secondary" Dense>
+            @foreach (var item in templateFiles)
+            {
+                <MudSelectItem Value="@item.Value">@item.Key</MudSelectItem>
+            }
+        </MudSelect>
+    </MudPaper>
     
     <div class="d-flex" style="width:60%;">
         <MudText Typo="Typo.body1" Class="pt-4">資料來源</MudText>
@@ -19,17 +29,8 @@
             <MudRadio Value="@("excel")" Color="Color.Secondary">Excel</MudRadio>
         </MudRadioGroup>
     </div>
-    <MudCollapse Expanded="@(SelectedSource == "db")">
-        <MudTextField Typo="Typo.body1" Class="py-4" Label="命名空間" Style="width:300px;" @bind-Value="classNameSpace" />
-        <MudSelect @bind-Value="selectedTemplateFile" Style="width:300px;" Label="選取範本" HelperText="選取範本" OpenIcon="@Icons.Material.Filled.FactCheck" AdornmentColor="Color.Secondary" Dense>
-            @foreach (var item in templateFiles)
-            {
-                <MudSelectItem Value="@item.Value">@item.Key</MudSelectItem>
-            }
-        </MudSelect>
-
-
-        <MudPaper class="d-flex gap-4" Style="width:20%;height:55px">
+    <MudCollapse Expanded="@(SelectedSource == "db")" Class="px-4 mx-4">
+        <MudPaper class="d-flex gap-4" Style="width:20%;height:70px">
             <MudSelect @bind-Value="selectedDbName" Label="選取資料庫" HelperText="選取資料庫" OpenIcon="@Icons.Material.Filled.FactCheck" AdornmentColor="Color.Secondary" Dense>
                 @foreach (string item in databaseNames)
                 {
@@ -40,28 +41,56 @@
                 讀取
             </MudButton>
         </MudPaper>
-        @if (tables.Count > 0)
-        {
-            <div style="width:40%;">
-                <MudText Typo="Typo.body1" Class="pt-4">資料表</MudText>
-                <MudTable T="DbTable" Items="@tables" MultiSelection="true" SelectionChangeable="true" Hover="true" Dense
-                          @bind-SelectedItems="selectedItems" SelectOnRowClick="true">
-                    <HeaderContent>
-                        <MudTh>資料表</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Name">@context.TableName</MudTd>
-                    </RowTemplate>
-                    <PagerContent>
-                        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
-                    </PagerContent>
-                </MudTable>
-            </div>
-        }
     </MudCollapse>
-    <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP" Disabled="!IsCanRun">
+    <MudCollapse Expanded="@(SelectedSource == "excel")" Class="pa-4 mx-4">
+        <MudFileUpload @bind-Files=@_uploadFile Class="mud-width-full">
+            <CustomContent>
+                <MudButtonGroup Color="Color.Secondary" Variant="Variant.Filled" Class="mud-width-full">
+                    <MudButton Variant="Variant.Filled" OnClick="@context.OpenFilePickerAsync" Style="min-width: 150px;">
+                        選擇Excel檔案
+                    </MudButton>
+                    <MudPaper Class="mud-width-full flex-wrap d-flex align-center justify-center mud-border-secondary mud-text-secondary"
+                              Style="width:500px;background-color:inherit;"
+                              Outlined="true">
+                        @if (_uploading)
+                        {
+                            <MudProgressLinear Class="mx-2" Color="Color.Tertiary" Size="Size.Large" Value="_uploadValue" Min="_uploadMin" Max="_uploadMax" />
+                        }
+                        else
+                        {
+                            @(context.GetFilenames().Count > 0 ? context.GetFilenames()[0] : " ")
+                        }
+                    </MudPaper>
+                    <MudButton Variant="Variant.Filled" OnClick="@Upload" Disabled="@(!context.GetFilenames().Any())">
+                        匯入
+                    </MudButton>
+                </MudButtonGroup>
+            </CustomContent>
+            <SelectedTemplate />
+        </MudFileUpload>        
+    </MudCollapse>
+    @if (tables.Count > 0)
+    {
+        <div style="width:20%;">
+            <MudText Typo="Typo.body1" Class="pt-4">資料表</MudText>
+            <MudTable T="DbTable" Items="@tables" MultiSelection="true" SelectionChangeable="true" Hover="true" Dense
+                      @bind-SelectedItems="selectedItems" SelectOnRowClick="true">
+                <HeaderContent>
+                    <MudTh>資料表</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.TableName</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        </div>
+    }
+
+@*     <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP" Disabled="!IsCanRun">
         產生Word文件
-    </MudButton>
+    </MudButton> *@
     <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateCSharpClass" Disabled="!IsCanRun">
         產生Zip檔案
     </MudButton>
@@ -98,12 +127,16 @@
 
     private async Task GetTableList()
     {
-        if (string.IsNullOrEmpty(selectedDbName))
-        {
-            // 顯示錯誤訊息，請選擇資料庫
-            Snackbar.Add("請選擇資料庫", Severity.Error);
-            return;
+        if (SelectedSource == "db")
+        {            
+            if (string.IsNullOrEmpty(selectedDbName))
+            {
+                // 顯示錯誤訊息，請選擇資料庫
+                Snackbar.Add("請選擇資料庫", Severity.Error);
+                return;
+            }
         }
+
         tables = await DatabaseRepository.GetTableSchemaAsync(selectedDbName);
         selectedItems = tables.ToHashSet();
         IsCanRun = true;
@@ -111,7 +144,7 @@
 
     private async Task GenerateSP()
     {
-        if (string.IsNullOrEmpty(selectedDbName))
+        if (SelectedSource == "db" && string.IsNullOrEmpty(selectedDbName))
         {
             // 顯示錯誤訊息，請選擇資料庫
             Snackbar.Add("請選擇資料庫", Severity.Error);
@@ -163,7 +196,7 @@
 
     private async Task GenerateCSharpClass()
     {
-        if (string.IsNullOrEmpty(selectedDbName))
+        if (SelectedSource == "db" && string.IsNullOrEmpty(selectedDbName))
         {
             // 顯示錯誤訊息，請選擇資料庫
             Snackbar.Add("請選擇資料庫", Severity.Error);
@@ -248,5 +281,57 @@
     private async Task GenerateSPContent()
     {
         // Implement logic to generate SP from database
+    }
+}
+
+@code 
+{
+    private IBrowserFile _uploadFile;
+    private bool _uploading;
+    private readonly int _uploadMin = 0;
+    private readonly int _uploadMax = 100;
+    private int _uploadValue = 0;
+
+    public async Task Upload()
+    {
+        if (_uploadFile == null) return;
+        
+        tables = new List<DbTable>();
+        _uploading = true;
+        StateHasChanged();
+
+        // 將 IBrowserFile 轉為 Stream
+        using var stream = _uploadFile.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024); // 限制 100MB
+        var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+
+        //-----------------------
+        await foreach (var result in ExcelService.ImportExcelTableSchemaAsync(memoryStream, _uploadFile.Name))
+        {
+            var (table, current, total) = result;
+
+            _uploadValue = (int)((current / (double)total) * 100);
+            StateHasChanged();
+
+            if (table != null)
+            {
+                if (!tables.Any(t => t.TableFullName == table.TableFullName))
+                {
+                    tables.Add(table);
+                }
+            }
+            else
+            {
+                Snackbar.Add($"Failed to import row {current} of {total}", Severity.Error);
+            }
+        }
+        //--------------------------
+
+        _uploadFile = default;
+        _uploading = false;
+        Snackbar.Add("匯入成功", Severity.Success);
+        selectedItems = tables.ToHashSet();
+        IsCanRun = true;
     }
 }

@@ -25,7 +25,7 @@ namespace JackToolLib.Models
         {
             get
             {
-                return string.Join(",", Columns.Where(c => c.IsPrimaryKey).Select(s => s.ColumnName + " ASC").ToArray());
+                return string.Join(",", Columns.Where(c => c.IsPrimaryKey).Select(s => $"[{s.ColumnName}] ASC").ToArray());
             }
         }
 

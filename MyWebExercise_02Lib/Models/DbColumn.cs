@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml;
 using DotLiquid;
 
 namespace JackToolLib.Models
@@ -17,16 +18,19 @@ namespace JackToolLib.Models
         public string TableDescription { get; set; }
         public string TableType { get; set; }
         public string ColumnName { get; set; }
-        public string CsAttribute {
+        public string[] CsAttribute {
             get {
-                return DataType switch
+                var builder = new List<string>();
+                if (IsPrimaryKey) builder.Add("[key]");
+
+                var exportType = DataType switch
                 {
-                    "char" => $"[{DataType}_({Length})]",
-                    "varchar" => $"[{DataType}_({Length})]",
-                    "text" => $"[Varchar_(max)]",
-                    "nchar" => $"[{DataType}_({Length})]",
-                    "nvarchar" => $"[{DataType}_({Length})]",
-                    "ntext" => $"[Nvarchar_(max)]",
+                    "char" => Length.ToLower() == "max" ? $"[{DataType}_(5000)]" : $"[{DataType}_({Length})]",
+                    "varchar" => Length.ToLower() == "max" ? $"[{DataType}_(5000)]" : $"[{DataType}_({Length})]",
+                    "text" => $"[Varchar_(5000)]",
+                    "nchar" => Length.ToLower() == "max" ? $"[{DataType}_(5000)]" : $"[{DataType}_({Length})]",
+                    "nvarchar" => Length.ToLower() == "max" ? $"[{DataType}_(5000)]" : $"[{DataType}_({Length})]",
+                    "ntext" => $"[Nvarchar_(5000)]",
                     //"bit" => IsNullable ? "bool?" : "bool",
                     //"tinyint" => IsNullable ? "byte?" : "byte",
                     //"smallint" => IsNullable ? "short?" : "short",
@@ -38,10 +42,21 @@ namespace JackToolLib.Models
                     //"money" => IsNullable ? "decimal?" : "decimal",
                     //"real" => IsNullable ? "float?" : "float",
                     //"float" => IsNullable ? "double?" : "double",
-                    //"datetime" => IsNullable ? "DateTime?" : "DateTime",
+                    ////"datetime" => IsNullable ? "DateTime?" : "DateTime",
                     //"varbinary" => IsNullable ? "byte[]?" : "byte[]",
                     _ => ""
                 };
+
+                if (exportType != "") builder.Add(exportType);
+                //var data = builder.Count switch
+                //{
+                //    1 => builder[0].ToString(),
+                //    2 => builder[0].ToString() + Environment.NewLine + builder[1].ToString(),
+                //    _ => ""
+                //};
+                //return data;
+                //var data = builder.ToArray();
+                return builder.ToArray();
             }
         }
         public string CsDatatype {
@@ -120,6 +135,24 @@ namespace JackToolLib.Models
                 }
 
                 return DataType +(string.IsNullOrWhiteSpace(Length) ? "" : string.Format("({0})", Length));
+            }
+            set {
+                var parts = value.Split('.');
+                if (parts.Length == 1)
+                {
+                    DataType = parts[0].ToLower();
+                }
+                if (parts.Length == 2)
+                {
+                    DataType = parts[0].ToLower();
+                    Length = parts[1];
+                }
+                if (parts.Length == 3) 
+                {
+                    DataType = parts[0].ToLower();
+                    NumericPrecision = parts[1];
+                    NumericScale = parts[2];
+                }
             }
         }
 

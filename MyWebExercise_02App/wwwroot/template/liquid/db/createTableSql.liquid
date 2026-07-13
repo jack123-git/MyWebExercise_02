@@ -27,13 +27,13 @@ CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
 GO
 
 {%- for column in table.Columns -%}
-{%- if column._description != null -%}
+{%- if column.Description != null -%}
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ column.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}', @level2type=N'COLUMN',@level2name=N'{{ column.Column_name }}'
 GO
 {%- endif -%}
 {%- endfor -%}
 
-{%- if table._description != null -%}
+{%- if table.Description != null -%}
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ table.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}'
 GO
 {%- endif -%}

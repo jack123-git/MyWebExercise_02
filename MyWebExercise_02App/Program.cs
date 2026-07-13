@@ -6,6 +6,8 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 100 * 1024 * 1024); // 限制 100MB
+
 // Add MudBlazor services
 builder.Services.AddMudServices();
 

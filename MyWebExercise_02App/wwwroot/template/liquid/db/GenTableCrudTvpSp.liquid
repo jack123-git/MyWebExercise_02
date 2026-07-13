@@ -2,6 +2,72 @@
 GO
 
 
+-- 使用者定義型態建立 udt_BigInt
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_BigInt' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_BigInt] AS TABLE (
+        [Value] BIGINT NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Bit
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Bit' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Bit] AS TABLE (
+        [Value] BIT NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Datetime
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Datetime' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Datetime] AS TABLE (
+        [Value] DATETIME NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_DatetimeOffset
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_DatetimeOffset' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_DatetimeOffset] AS TABLE (
+        [Value] DATETIMEOFFSET (7) NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Decimal
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Decimal' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Decimal] AS TABLE (
+        [Value] DECIMAL (28, 8) NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Int
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Int' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Int] AS TABLE (
+        [Value] INT NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_String
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_String' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_String] AS TABLE (
+        [Value] NVARCHAR (850) NULL,
+        INDEX [IX_Value] ([Value])); 
+END
+
+-- 使用者定義型態建立 Guid udt_UniqueIdentifier
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_UniqueIdentifier' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_UniqueIdentifier] AS TABLE (
+        [Value] UNIQUEIDENTIFIER NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+
+
 -- Schema建立 {{ table.Schema_name }}
 IF Not EXISTS (SELECT 1 FROM sys.schemas WHERE name = '{{ table.Schema_name }}')
 BEGIN
@@ -9,12 +75,10 @@ BEGIN
 END
 
 
--- {{ table.Schema_name }}.{{ table.Table_name }} Table刪除 
+
 DROP TABLE IF EXISTS {{ table.Schema_name }}.{{ table.Table_name }};
 GO
 
-
--- {{ table.Schema_name }}.{{ table.Table_name }} Table建立
 CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
 {%- for column in table.Columns -%}
 	[{{ column.Column_name }}] {{ column.Full_data_type }}{% if column.Is_nullable == false %} Not{% endif %} NULL,
@@ -39,13 +103,16 @@ GO
 {%- endif -%}
 
 
+
+
+
 -- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select 是否存在，若存在則刪除
 IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Select', 'P') IS NOT NULL
     DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select;
 GO
 
 -- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select
-create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Select]
+create procedure  {{ table.Schema_name }}.tp_{{ table.Table_name }}_Select
 {%- assign param = "" -%}
 {%- for column in table.columns -%}
 {%- if column.Is_primary_key -%}
@@ -86,6 +153,8 @@ end
 GO
 
 
+
+
 -- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete 是否存在，若存在則刪除
 IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete', 'P') IS NOT NULL
     DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Delete;
@@ -105,16 +174,17 @@ create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Delete]
 {%- endif -%}
 {%- endfor -%}
 as begin  
+
    --刪除資料
    delete [{{ table.Schema_name }}].[{{ table.Table_name }}]
 {%- assign param = "" -%}
 {%- for column in table.columns -%}
 {%- if column.Is_primary_key -%}
 {%- if param == "" -%}
-    where {{ column.Column_name }} = @{{ column.Column_name }}
+    WHERE {{ column.Column_name }} = @{{ column.Column_name }}
 {%- assign param = @column.Column_name -%}
 {%- else -%}
-    and {{ column.Column_name }} = @{{ column.Column_name }}
+    AND {{ column.Column_name }} = @{{ column.Column_name }}
 {%- endif -%}
 {%- endif -%}
 {%- endfor -%}
@@ -122,11 +192,12 @@ end
 GO
 
 
+
+
 -- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge 是否存在，若存在則刪除
 IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge', 'P') IS NOT NULL
     DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge;
 GO
-
 
 -- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge
 create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Merge]
@@ -134,7 +205,7 @@ create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Merge]
 {%- for column in table.columns -%}
 {%- if column.Is_primary_key -%}
 {%- if param == "" -%}
-@old_{{ column.Column_name }} {{ column.Full_data_type }}
+@old_{{ column.Column_name }} {{ column.Full_data_type }} = null
 {%- assign param = @column.Column_name -%}
 {%- else -%}
 ,@old_{{ column.Column_name }} {{ column.Full_data_type }}

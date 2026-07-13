@@ -1,11 +1,16 @@
 ﻿using JackToolLib.Extension;
 using JackToolLib.Interfaces;
 using JackToolLib.Models;
+using MathNet.Numerics.Optimization;
+using MudBlazor;
+using NPOI.HPSF;
+using NPOI.HSSF.UserModel;
+using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 
 namespace JackToolLib.Services
 {
-    public class ExcelService: IExcelService
+    public class ExcelService : IExcelService
     {
         // IProgress<(int current, int total)> progress 用來回傳匯出進度
         public async Task<byte[]> GenerateDocumentAsync(List<DbTable> DbTables, List<string> tableNames, string templatePath, IProgress<(int current, int total)> progress)
@@ -147,6 +152,202 @@ namespace JackToolLib.Services
             workbook = null;
 
             return memoryStream.ToArray();
+        }
+
+        public async IAsyncEnumerable<(DbTable table, int current, int total)> ImportExcelTableSchemaAsync(Stream fileStream, string fileName)
+        {
+            IWorkbook workbook;
+            if (Path.GetExtension(fileName).Equals(".xls", StringComparison.OrdinalIgnoreCase))
+                workbook = new HSSFWorkbook(fileStream);
+            else if (Path.GetExtension(fileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
+                workbook = new XSSFWorkbook(fileStream);
+            else
+                throw new NotSupportedException("未支援的檔案格式");
+
+
+            // 讀取TableSheet
+            #region 讀取資料庫名稱
+            List<DbTable> tables = new List<DbTable>();
+            var dbName = string.Empty;
+            var tablesheetIndex = -1;
+            for (int i = 0; i <= workbook.NumberOfSheets - 1; i++)
+            {
+                tablesheetIndex = i;
+                if (IsTableSheet(workbook.GetSheetAt(i)))
+                {
+                    var sheet = workbook.GetSheetAt(i);
+                    for (int rowIndex = 0; rowIndex <= sheet.LastRowNum; rowIndex++)
+                    {
+                        var row = sheet.GetRow(rowIndex);
+                        var item = row.GetCell(0).StringCellValue;
+                        if (item.StartsWith("資料庫名稱"))
+                        {
+                            dbName = row.GetCell(2).StringCellValue;
+                        }
+
+                        //if (int.TryParse(item.Substring(1), out tablesheet))
+                        //{
+                        //    var tableFullName = row.GetCell(2).StringCellValue;
+                        //    var tableDesc = row.GetCell(4).StringCellValue;
+                        //    var (tableSchema, tableName) = SplitTableFullName(tableFullName);
+                        //    var table = new DbTable
+                        //    {
+                        //        DatabaseName = dbName,
+                        //        SchemaName = tableSchema,
+                        //        TableName = tableName,
+                        //        Description = tableDesc,
+                        //        Columns = new List<DbColumn>()
+                        //    };
+                        //    tables.Add(table);
+                        //}
+                    }
+                    break; // 找到TableSheet後就退出迴圈
+                }
+            }
+            #endregion
+
+            int total = workbook.NumberOfSheets; // 總行數 (不包含標題列)
+            int current = 1; // 當前Table
+
+            for (int i = 0; i <= workbook.NumberOfSheets - 1; i++)
+            {
+                if (i == tablesheetIndex) continue; // 跳過TableSheet
+                var sheet = workbook.GetSheetAt(i);
+                var serNo = 1; 
+
+                var table = new DbTable
+                {
+                    DatabaseName = dbName,
+                    SchemaName = string.Empty,
+                    TableName = string.Empty,
+                    Description = string.Empty,
+                    Columns = new List<DbColumn>()
+                };
+                for (int rowIndex = 0; rowIndex <= sheet.LastRowNum; rowIndex++)
+                {
+                    var row = sheet.GetRow(rowIndex);
+                    var item = row.GetCell(0).StringCellValue;
+
+
+                    if (item == "資料表")
+                    {
+                        var tableFullName = row.GetCell(2).StringCellValue;
+                        var (_tableSchema, _tableName) = SplitTableFullName(tableFullName);
+                        table.SchemaName = _tableSchema;
+                        table.TableName = _tableName;
+                        table.TableFullName = tableFullName;
+                    }
+                    else if (item == "資料表描述")
+                    {
+                        var tableDescription = row.GetCell(2).StringCellValue;
+                        table.Description = tableDescription;
+                    }
+                    else if (item != "項目" && item != "")
+                    {
+                        var ColumnNo = serNo++;
+                        var ColumnName = row.GetCell(1).StringCellValue;
+                        var PK = row.GetCell(2).StringCellValue == "V" ? "Yes" : "No";
+                        var Nullable = row.GetCell(3).StringCellValue == "V" ? "Yes" : "No";
+                        var FullDataType = row.GetCell(4).StringCellValue;
+                        var Default = row.GetCell(5)?.StringCellValue;
+                        var Description = row.GetCell(6)?.StringCellValue;
+
+
+                        var column = new DbColumn
+                        {
+                            ColumnNo = serNo++,
+                            ColumnName = row.GetCell(1).StringCellValue,
+                            PK = row.GetCell(2).StringCellValue == "V" ? "Yes" : "No",
+                            Nullable = row.GetCell(3).StringCellValue == "V" ? "Yes" : "No",
+                            FullDataType = row.GetCell(4).StringCellValue,
+                            Default = row.GetCell(5)?.StringCellValue,
+                            Description = row.GetCell(6)?.StringCellValue
+                        };
+                        table.Columns.Add(column);
+                    }
+                    tables.Add(table);
+                }
+
+                if (tables.Contains(table))
+                {
+                    tables.Add(table);
+                    await Task.Delay(75);
+                    current++;
+                    yield return (table, current, total);
+                    await Task.Yield();
+                }
+                //var item = row.GetCell(1).StringCellValue;
+
+
+                //var tableName = sheet.SheetName;
+
+                //yield return (null, 0, 0);
+                //await Task.Yield();
+            }
+
+            //var sheet = workbook.GetSheetAt(0);
+            //int total = sheet.LastRowNum; // 總行數 (不包含標題列)
+
+            // 
+
+
+            //for (int i = 0; i <= workbook.NumberOfSheets - 1; i++)
+            //{
+            //    var sheet = workbook.GetSheetAt(i);
+            //    var tableName = sheet.SheetName;
+
+
+
+            //    var table = new DbTable
+            //    {
+            //        TableName = tableName,
+            //        Columns = new List<DbColumn>()
+            //    };
+            //    for (int rowIndex = 1; rowIndex <= sheet.LastRowNum; rowIndex++)
+            //    {
+            //        var row = sheet.GetRow(rowIndex);
+            //        if (row == null) continue;
+            //        var column = new DbColumn
+            //        {
+            //            ColumnNo = (int)row.GetCell(0).NumericCellValue,
+            //            ColumnName = row.GetCell(1).StringCellValue,
+            //            IsPrimaryKey = row.GetCell(2).StringCellValue == "V",
+            //            IsForeignKey = row.GetCell(3).StringCellValue == "V",
+            //            FkReferencedInfo = row.GetCell(4)?.StringCellValue,
+            //            IsNullable = row.GetCell(5).StringCellValue == "V",
+            //            IsIdentity = row.GetCell(6).StringCellValue == "V",
+            //            FullDataType = row.GetCell(7).StringCellValue,
+            //            Default = row.GetCell(8)?.StringCellValue,
+            //            Description = row.GetCell(9)?.StringCellValue
+            //        };
+            //        table.Columns.Add(column);
+            //    }
+            //    await Task.Delay(75);
+            //    current++;
+            //    yield return (table, current, total);
+
+
+
+            //}
+        }
+
+        private (string schema, string name) SplitTableFullName(string tableFullName)
+        {
+            var parts = tableFullName.Split('.');
+            if (parts.Length == 2)
+            {
+                return (parts[0], parts[1]);
+            }
+            else
+            {
+                return ("dbo", tableFullName);
+            }
+        }
+
+        private bool IsTableSheet(ISheet sheet)
+        {
+            // 判斷是否為資料表結構的工作表，這裡假設資料表結構的工作表名稱不以 "#" 開頭
+            return sheet.SheetName.StartsWith("Table");
         }
     }
 }

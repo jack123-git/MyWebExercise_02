@@ -7,6 +7,7 @@ namespace {{ name_space }}
     /// <summary>
     /// {{ table.Description }}
     /// </summary>
+    [DbInformation("{{ table.Schema_name }}", "{{ table.table_name }}")]
     public class {{ table.table_name }}
     {
         /// <summary>
@@ -15,10 +16,14 @@ namespace {{ name_space }}
         public {{ table.table_name }}() { }
 
         {%- for column in table.Columns -%}
+        {%- if column.Description != "" -%}
         /// <summary>
         /// {{ column.Description }}
         /// </summary>
-        {{ column.Cs_attribute | capitalize }}
+        {%- endif -%}
+        {%- for attribute in column.Cs_attribute -%}
+        {{ attribute | capitalize }}
+        {%- endfor -%}
         public {{ column.cs_datatype }} {{ column.Column_name }} { get; set; }
 
         {%- endfor -%}
