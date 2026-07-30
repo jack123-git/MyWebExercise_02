@@ -217,6 +217,7 @@ namespace JackToolLib.Services
                 if (i == tablesheetIndex) continue; // 跳過TableSheet
                 var sheet = workbook.GetSheetAt(i);
                 var serNo = 1; 
+                var ColumnDict = new Dictionary<string, int>();
 
                 var table = new DbTable
                 {
@@ -226,11 +227,11 @@ namespace JackToolLib.Services
                     Description = string.Empty,
                     Columns = new List<DbColumn>()
                 };
+
                 for (int rowIndex = 0; rowIndex <= sheet.LastRowNum; rowIndex++)
                 {
                     var row = sheet.GetRow(rowIndex);
                     var item = row.GetCell(0).StringCellValue;
-                    var ColumnDict = new Dictionary<string, int>();
 
                     if (item == "資料表")
                     {
@@ -284,8 +285,8 @@ namespace JackToolLib.Services
                         var Nullable = row.GetCell(ColumnDict["可Null"]).StringCellValue == "V" ? "Yes" : "No";
                         var PKAutoInt = row.GetCell(ColumnDict["自動編號"]).StringCellValue == "V" ? "Yes" : "No";
                         var FullDataType = row.GetCell(ColumnDict["資料型態"]).StringCellValue;
-                        var Default = row.GetCell(ColumnDict["預設值"])?.StringCellValue;
-                        var Description = row.GetCell(ColumnDict["描述"])?.StringCellValue;
+                        var Default = row.GetCell(ColumnDict["預設值"])?.StringCellValue=="" ? null : row.GetCell(ColumnDict["預設值"])?.StringCellValue;
+                        var Description = row.GetCell(ColumnDict["描述"])?.StringCellValue=="" ? null: row.GetCell(ColumnDict["描述"])?.StringCellValue;
 
                         var column = new DbColumn
                         {

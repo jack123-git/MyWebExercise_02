@@ -92,7 +92,6 @@ GO
 
 
 
--- Default
 {%- for column in table.Columns -%}
 {%- if column.Default != null -%}
 ALTER TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}] ADD  CONSTRAINT [DF_{{ table.Table_name }}_{{ column.Column_name }}]  DEFAULT {{ column.Default }} FOR [{{ column.Column_name }}]
@@ -103,13 +102,13 @@ GO
 
 
 {%- for column in table.Columns -%}
-{%- if column._description != null -%}
+{%- if column.Description != null -%}
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ column.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}', @level2type=N'COLUMN',@level2name=N'{{ column.Column_name }}'
 GO
 {%- endif -%}
 {%- endfor -%}
 
-{%- if table._description != null -%}
+{%- if table.Description != null -%}
 EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ table.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}'
 GO
 {%- endif -%}
@@ -203,6 +202,75 @@ GO
 
 
 
+-- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge 是否存在，若存在則刪除
+IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge', 'P') IS NOT NULL
+    DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge;
+GO
+
+-- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge
+create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Merge]
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+@old_{{ column.Column_name }} {{ column.Full_data_type }} = null
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+,@old_{{ column.Column_name }} {{ column.Full_data_type }}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+{%- for column in table.columns -%}
+{%- if param == "" -%}
+@{{ column.Column_name }} {{ column.Full_data_type }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+,@{{ column.Column_name }} {{ column.Full_data_type }}
+{%- endif -%}
+{%- endfor -%}
+as begin  
+   --若鍵值舊值為null表示為未更動
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+   if (@old_{{ column.Column_name }} is null) set @old_{{ column.Column_name }} = @{{ column.Column_name }}
+{%- endif -%}
+{%- endfor -%}
+
+   --更新資料
+   update [{{ table.Schema_name }}].[{{ table.Table_name }}] set
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if param == "" -%}
+    [{{ column.Column_name }}] = @{{ column.Column_name }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+    ,[{{ column.Column_name }}] = @{{ column.Column_name }}
+{%- endif -%}
+{%- endfor -%}
+{%- assign param = "" -%}
+{%- for column in table.columns -%}
+{%- if column.Is_primary_key -%}
+{%- if param == "" -%}
+    where {{ column.Column_name }} = @{{ column.Column_name }}
+{%- assign param = @column.Column_name -%}
+{%- else -%}
+    and {{ column.Column_name }} = @{{ column.Column_name }}
+{%- endif -%}
+{%- endif -%}
+{%- endfor -%}
+   --異動資料0筆的話新增
+   if (@@rowcount = 0)
+   --新增
+   insert into [{{ table.Schema_name }}].[{{ table.Table_name }}]
+      ({%- assign param = "" -%}{%- for column in table.columns -%}{%- if column.Is_autoint == false -%}{%- if param == "" -%}[{{ column.Column_name }}]{%- assign param = @column.Column_name -%}{%- else -%},[{{ column.Column_name }}]{%- endif -%}{%- endif -%}{%- endfor -%})
+   values
+      ({%- assign param = "" -%}{%- for column in table.columns -%}{%- if column.Is_autoint == false -%}{%- if param == "" -%}@{{ column.Column_name }}{%- assign param = @column.Column_name -%}{%- else -%},@{{ column.Column_name }}{%- endif -%}{%- endif -%}{%- endfor -%})
+end
+GO
+
+
+----------------------------------------------------------------
+
 -- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Insert 是否存在，若存在則刪除
 IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Insert', 'P') IS NOT NULL
     DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Insert;
@@ -274,68 +342,3 @@ GO
 
 
 
--- 檢查 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge 是否存在，若存在則刪除
-IF OBJECT_ID('{{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge', 'P') IS NOT NULL
-    DROP PROCEDURE {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge;
-GO
-
--- 建立 {{ table.Schema_name }}.tp_{{ table.Table_name }}_Merge
-create procedure [{{ table.Schema_name }}].[tp_{{ table.Table_name }}_Merge]
-{%- assign param = "" -%}
-{%- for column in table.columns -%}
-{%- if column.Is_primary_key -%}
-{%- if param == "" -%}
-@old_{{ column.Column_name }} {{ column.Full_data_type }} = null
-{%- assign param = @column.Column_name -%}
-{%- else -%}
-,@old_{{ column.Column_name }} {{ column.Full_data_type }}
-{%- endif -%}
-{%- endif -%}
-{%- endfor -%}
-{%- for column in table.columns -%}
-{%- if param == "" -%}
-@{{ column.Column_name }} {{ column.Full_data_type }}
-{%- assign param = @column.Column_name -%}
-{%- else -%}
-,@{{ column.Column_name }} {{ column.Full_data_type }}
-{%- endif -%}
-{%- endfor -%}
-as begin  
-   --若鍵值舊值為null表示為未更動
-{%- for column in table.columns -%}
-{%- if column.Is_primary_key -%}
-   if (@old_{{ column.Column_name }} is null) set @old_{{ column.Column_name }} = @{{ column.Column_name }}
-{%- endif -%}
-{%- endfor -%}
-
-   --更新資料
-   update [{{ table.Schema_name }}].[{{ table.Table_name }}] set
-{%- assign param = "" -%}
-{%- for column in table.columns -%}
-{%- if param == "" -%}
-    [{{ column.Column_name }}] = @{{ column.Column_name }}
-{%- assign param = @column.Column_name -%}
-{%- else -%}
-    ,[{{ column.Column_name }}] = @{{ column.Column_name }}
-{%- endif -%}
-{%- endfor -%}
-{%- assign param = "" -%}
-{%- for column in table.columns -%}
-{%- if column.Is_primary_key -%}
-{%- if param == "" -%}
-    where {{ column.Column_name }} = @{{ column.Column_name }}
-{%- assign param = @column.Column_name -%}
-{%- else -%}
-    and {{ column.Column_name }} = @{{ column.Column_name }}
-{%- endif -%}
-{%- endif -%}
-{%- endfor -%}
-   --異動資料0筆的話新增
-   if (@@rowcount = 0)
-   --新增
-   insert into [{{ table.Schema_name }}].[{{ table.Table_name }}]
-      ({%- assign param = "" -%}{%- for column in table.columns -%}{%- if column.Is_autoint == false -%}{%- if param == "" -%}[{{ column.Column_name }}]{%- assign param = @column.Column_name -%}{%- else -%},[{{ column.Column_name }}]{%- endif -%}{%- endif -%}{%- endfor -%})
-   values
-      ({%- assign param = "" -%}{%- for column in table.columns -%}{%- if column.Is_autoint == false -%}{%- if param == "" -%}@{{ column.Column_name }}{%- assign param = @column.Column_name -%}{%- else -%},@{{ column.Column_name }}{%- endif -%}{%- endif -%}{%- endfor -%})
-end
-GO

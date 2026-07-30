@@ -93,7 +93,7 @@ CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
 ) ON [PRIMARY]
 GO
 
--- Default
+
 {%- for column in table.Columns -%}
 {%- if column.Default != null -%}
 ALTER TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}] ADD  CONSTRAINT [DF_{{ table.Table_name }}_{{ column.Column_name }}]  DEFAULT {{ column.Default }} FOR [{{ column.Column_name }}]
