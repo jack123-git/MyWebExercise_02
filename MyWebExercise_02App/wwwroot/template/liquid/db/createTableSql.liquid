@@ -6,6 +6,73 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
+
+-- 使用者定義型態建立 udt_BigInt
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_BigInt' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_BigInt] AS TABLE (
+        [Value] BIGINT NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Bit
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Bit' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Bit] AS TABLE (
+        [Value] BIT NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Datetime
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Datetime' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Datetime] AS TABLE (
+        [Value] DATETIME NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_DatetimeOffset
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_DatetimeOffset' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_DatetimeOffset] AS TABLE (
+        [Value] DATETIMEOFFSET (7) NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Decimal
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Decimal' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Decimal] AS TABLE (
+        [Value] DECIMAL (28, 8) NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_Int
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_Int' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_Int] AS TABLE (
+        [Value] INT NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+-- 使用者定義型態建立 udt_String
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_String' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_String] AS TABLE (
+        [Value] NVARCHAR (850) NULL,
+        INDEX [IX_Value] ([Value])); 
+END
+
+-- 使用者定義型態建立 Guid udt_UniqueIdentifier
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'udt_UniqueIdentifier' AND is_table_type = 1)
+BEGIN
+    CREATE TYPE [dbo].[udt_UniqueIdentifier] AS TABLE (
+        [Value] UNIQUEIDENTIFIER NULL,
+        INDEX [IX_Value] ([Value]));
+END
+
+
+
 -- Schema建立 {{ table.Schema_name }}
 IF Not EXISTS (SELECT 1 FROM sys.schemas WHERE name = '{{ table.Schema_name }}')
 BEGIN
@@ -17,7 +84,7 @@ GO
 
 CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
 {%- for column in table.Columns -%}
-	[{{ column.Column_name }}] {{ column.Full_data_type }}{% if column.Is_nullable == false %} Not{% endif %} NULL,
+	[{{ column.Column_name }}] {{ column.Full_data_type }}{% if column.Is_autoint == true %} IDENTITY(1,1){% endif %}{% if column.Is_nullable == false %} Not{% endif %} NULL,
 {%- endfor -%}
  CONSTRAINT [PK_{{ table.Table_name }}] PRIMARY KEY CLUSTERED 
 (
@@ -25,6 +92,14 @@ CREATE TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}](
 )WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
 ) ON [PRIMARY]
 GO
+
+-- Default
+{%- for column in table.Columns -%}
+{%- if column.Default != null -%}
+ALTER TABLE [{{ table.Schema_name }}].[{{ table.Table_name }}] ADD  CONSTRAINT [DF_{{ table.Table_name }}_{{ column.Column_name }}]  DEFAULT {{ column.Default }} FOR [{{ column.Column_name }}]
+GO
+{%- endif -%}
+{%- endfor -%}
 
 {%- for column in table.Columns -%}
 {%- if column.Description != null -%}

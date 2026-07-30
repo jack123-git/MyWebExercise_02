@@ -165,6 +165,7 @@ namespace JackToolLib.Models
         public string Default { get; set; }
 
         public string Nullable { get; set; }
+        public string PKAutoInt { get; set; } // 是否為自動編號欄位 YES/NO
 
         public string Identity { get; set; }
 
@@ -211,6 +212,14 @@ namespace JackToolLib.Models
                   && PK.IndexOf("YES", StringComparison.OrdinalIgnoreCase) >= 0;
             }
         }
+        public bool IsAutoint 
+        { 
+            get
+            {
+                return PKAutoInt != null
+                    && PKAutoInt.IndexOf("YES", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+        } // 是否為自動編號欄位
 
         public bool IsIdentity
         {

@@ -125,7 +125,8 @@ namespace JackToolLib.Data
                     WHEN COLUMNPROPERTY(object_id(tb.TABLE_NAME), col.COLUMN_NAME, 'IsIdentity') = 1  
                         THEN 'YES' 
                         ELSE 'NO' 
-                    END AS 'Identity'  
+                    END AS 'Identity'    
+                    , col.PKAutoInt
                     ,(SELECT value
                         FROM sys.fn_listextendedproperty(NULL, 'schema', tb.TABLE_SCHEMA, 'table', tb.TABLE_NAME, 'column', DEFAULT)
                         WHERE name = 'MS_Description'
@@ -149,7 +150,13 @@ namespace JackToolLib.Data
                 FROM 
 
                 INFORMATION_SCHEMA.TABLES tb
-                LEFT JOIN INFORMATION_SCHEMA.COLUMNS col ON (tb.TABLE_NAME = col.TABLE_NAME)
+                -- LEFT JOIN INFORMATION_SCHEMA.COLUMNS col ON (tb.TABLE_NAME = col.TABLE_NAME)
+                LEFT JOIN (
+                  select case when IC.is_identity is null  THEN 'NO' ELSE 'YES' END  as PKAutoInt,c.* 
+                  from INFORMATION_SCHEMA.COLUMNS C
+                  Left JOIN sys.identity_columns IC
+                  On IC.object_id = OBJECT_ID(c.TABLE_SCHEMA + '.' + C.TABLE_NAME) and IC.name = c.Column_Name
+                ) col ON (tb.TABLE_NAME = col.TABLE_NAME)
                 LEFT JOIN
                 (
                 INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS AS rc 

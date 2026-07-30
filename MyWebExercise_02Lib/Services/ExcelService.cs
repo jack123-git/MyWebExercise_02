@@ -29,6 +29,7 @@ namespace JackToolLib.Services
             const string tagName4ColumnNo = "#column.no";
             const string tagName4ColumnName = "#column.name";
             const string tagName4ColumnPK = "#column.pk";
+            const string tagName4ColumnAutoInt = "#column.autoint";
             const string tagName4ColumnFK = "#column.fk";
             const string tagName4ColumnFKReference = "#column.fkreference";
             const string tagName4ColumnNullable = "#column.nullable";
@@ -112,6 +113,7 @@ namespace JackToolLib.Services
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnNo, column.ColumnNo.ToString());
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnName, column.ColumnName);
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnPK, column.IsPrimaryKey ? "V" : "");
+                        schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnAutoInt, column.IsAutoint ? "V" : "");
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnFK, column.IsForeignKey ? "V" : "");
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnFKReference, column.FkReferencedInfo);
                         schemaSheet.SetFirstMatchCellContentInRow(newRowIndex, tagName4ColumnNullable, column.IsNullable ? "V" : "");
@@ -208,6 +210,7 @@ namespace JackToolLib.Services
 
             int total = workbook.NumberOfSheets; // 總行數 (不包含標題列)
             int current = 1; // 當前Table
+            Dictionary<string, int> columnIndex = new Dictionary<string, int>(); //紀錄對應欄位索引
 
             for (int i = 0; i <= workbook.NumberOfSheets - 1; i++)
             {
@@ -227,7 +230,7 @@ namespace JackToolLib.Services
                 {
                     var row = sheet.GetRow(rowIndex);
                     var item = row.GetCell(0).StringCellValue;
-
+                    var ColumnDict = new Dictionary<string, int>();
 
                     if (item == "資料表")
                     {
@@ -242,26 +245,64 @@ namespace JackToolLib.Services
                         var tableDescription = row.GetCell(2).StringCellValue;
                         table.Description = tableDescription;
                     }
+                    else if (item == "項目")
+                    {
+                        int columnCount = row.LastCellNum;
+                        for (int j = row.FirstCellNum; j < columnCount; j++)
+                        {
+                            var ColumnName = row.GetCell(j).StringCellValue;
+                            int colIndex = ColumnName switch
+                            {
+                                "項目" => j,
+                                "欄位名稱" => j,
+                                "主鍵" => j,
+                                "可Null" => j,
+                                "自動編號" => j,
+                                "資料型態" => j,
+                                "預設值" => j,
+                                "描述" => j,
+                                _ => -1
+                            };
+                            if (colIndex >=0)
+                                ColumnDict[ColumnName] = colIndex;
+                        }
+                    }
                     else if (item != "項目" && item != "")
                     {
                         var ColumnNo = serNo++;
-                        var ColumnName = row.GetCell(1).StringCellValue;
-                        var PK = row.GetCell(2).StringCellValue == "V" ? "Yes" : "No";
-                        var Nullable = row.GetCell(3).StringCellValue == "V" ? "Yes" : "No";
-                        var FullDataType = row.GetCell(4).StringCellValue;
-                        var Default = row.GetCell(5)?.StringCellValue;
-                        var Description = row.GetCell(6)?.StringCellValue;
+                        //var ColumnName = row.GetCell(1).StringCellValue;
+                        //var PK = row.GetCell(2).StringCellValue == "V" ? "Yes" : "No";
+                        //var Nullable = row.GetCell(3).StringCellValue == "V" ? "Yes" : "No";
+                        //var AutoInt = row.GetCell(4).StringCellValue == "V" ? "Yes" : "No";
+                        //var FullDataType = row.GetCell(5).StringCellValue;
+                        //var Default = row.GetCell(6)?.StringCellValue;
+                        //var Description = row.GetCell(7)?.StringCellValue;
 
+                        var ColumnName = row.GetCell(ColumnDict["欄位名稱"]).StringCellValue;
+                        //var ColumnName = row.GetCell(1).StringCellValue;
+                        var PK = row.GetCell(ColumnDict["主鍵"]).StringCellValue == "V" ? "Yes" : "No";
+                        var Nullable = row.GetCell(ColumnDict["可Null"]).StringCellValue == "V" ? "Yes" : "No";
+                        var PKAutoInt = row.GetCell(ColumnDict["自動編號"]).StringCellValue == "V" ? "Yes" : "No";
+                        var FullDataType = row.GetCell(ColumnDict["資料型態"]).StringCellValue;
+                        var Default = row.GetCell(ColumnDict["預設值"])?.StringCellValue;
+                        var Description = row.GetCell(ColumnDict["描述"])?.StringCellValue;
 
                         var column = new DbColumn
                         {
                             ColumnNo = serNo++,
-                            ColumnName = row.GetCell(1).StringCellValue,
-                            PK = row.GetCell(2).StringCellValue == "V" ? "Yes" : "No",
-                            Nullable = row.GetCell(3).StringCellValue == "V" ? "Yes" : "No",
-                            FullDataType = row.GetCell(4).StringCellValue,
-                            Default = row.GetCell(5)?.StringCellValue,
-                            Description = row.GetCell(6)?.StringCellValue
+                            //ColumnName = row.GetCell(1).StringCellValue,
+                            //PK = row.GetCell(2).StringCellValue == "V" ? "Yes" : "No",
+                            //Nullable = row.GetCell(3).StringCellValue == "V" ? "Yes" : "No",
+                            //FullDataType = row.GetCell(4).StringCellValue,
+                            //Default = row.GetCell(5)?.StringCellValue,
+                            //Description = row.GetCell(6)?.StringCellValue
+                            ColumnName = ColumnName,
+                            PK = PK,
+                            Nullable = Nullable,
+                            PKAutoInt = PKAutoInt,
+                            FullDataType = FullDataType,
+                            Default = Default,
+                            Description = Description
                         };
                         table.Columns.Add(column);
                     }
