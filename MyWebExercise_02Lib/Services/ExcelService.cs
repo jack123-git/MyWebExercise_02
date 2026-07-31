@@ -231,7 +231,7 @@ namespace JackToolLib.Services
                 for (int rowIndex = 0; rowIndex <= sheet.LastRowNum; rowIndex++)
                 {
                     var row = sheet.GetRow(rowIndex);
-                    var item = row.GetCell(0).StringCellValue;
+                    var item = row.GetCell(0).ToString();
 
                     if (item == "資料表")
                     {
@@ -281,12 +281,12 @@ namespace JackToolLib.Services
 
                         var ColumnName = row.GetCell(ColumnDict["欄位名稱"]).StringCellValue;
                         //var ColumnName = row.GetCell(1).StringCellValue;
-                        var PK = row.GetCell(ColumnDict["主鍵"]).StringCellValue == "V" ? "Yes" : "No";
-                        var Nullable = row.GetCell(ColumnDict["可Null"]).StringCellValue == "V" ? "Yes" : "No";
-                        var PKAutoInt = row.GetCell(ColumnDict["自動編號"]).StringCellValue == "V" ? "Yes" : "No";
-                        var FullDataType = row.GetCell(ColumnDict["資料型態"]).StringCellValue;
-                        var Default = row.GetCell(ColumnDict["預設值"])?.StringCellValue=="" ? null : row.GetCell(ColumnDict["預設值"])?.StringCellValue;
-                        var Description = row.GetCell(ColumnDict["描述"])?.StringCellValue=="" ? null: row.GetCell(ColumnDict["描述"])?.StringCellValue;
+                        var PK = ColumnDict.ContainsKey("主鍵") && row.GetCell(ColumnDict["主鍵"]).StringCellValue == "V" ? "Yes" : "No";
+                        var Nullable = ColumnDict.ContainsKey("可Null") && row.GetCell(ColumnDict["可Null"]).StringCellValue == "V" ? "Yes" : "No";
+                        var PKAutoInt = ColumnDict.ContainsKey("自動編號") && row.GetCell(ColumnDict["自動編號"]).StringCellValue == "V" ? "Yes" : "No";
+                        var FullDataType = ColumnDict.ContainsKey("資料型態") && row.GetCell(ColumnDict["資料型態"]).StringCellValue == "" ? null : row.GetCell(ColumnDict["資料型態"]).StringCellValue;
+                        var Default = ColumnDict.ContainsKey("預設值") && row.GetCell(ColumnDict["預設值"])?.StringCellValue == "" ? null : row.GetCell(ColumnDict["預設值"])?.StringCellValue;
+                        var Description = ColumnDict.ContainsKey("描述") && row.GetCell(ColumnDict["描述"])?.StringCellValue == "" ? null : row.GetCell(ColumnDict["描述"])?.StringCellValue;
 
                         var column = new DbColumn
                         {
@@ -302,15 +302,15 @@ namespace JackToolLib.Services
                             Nullable = Nullable,
                             PKAutoInt = PKAutoInt,
                             FullDataType = FullDataType,
-                            Default = Default,
-                            Description = Description
+                            Default = Default
+                            ,Description = Description
                         };
                         table.Columns.Add(column);
                     }
-                    tables.Add(table);
+                    //tables.Add(table);
                 }
 
-                if (tables.Contains(table))
+                if (!tables.Contains(table))
                 {
                     tables.Add(table);
                     await Task.Delay(75);
