@@ -62,7 +62,7 @@ namespace JackToolLib.Models
         public string CsDatatype {
             get 
             { 
-                return DataType switch { 
+                return DataType.ToLower() switch { 
                     "char" => IsNullable?"string?": "string",
                     "varchar" => IsNullable ? "string?" : "string",
                     "text" => IsNullable ? "string?" : "string",
@@ -90,7 +90,7 @@ namespace JackToolLib.Models
         public string  TvpDatatype 
         {
             get {
-                return DataType switch
+                return DataType.ToLower() switch
                 {
                     "char" => $"[dbo].[udt_String]",
                     "varchar" => $"[dbo].[udt_String]",
@@ -137,21 +137,31 @@ namespace JackToolLib.Models
                 return DataType +(string.IsNullOrWhiteSpace(Length) ? "" : string.Format("({0})", Length));
             }
             set {
-                var parts = value.Split('.');
-                if (parts.Length == 1)
+                var idx1 = value.IndexOf("(");
+                var idx2 = value.IndexOf(",");
+                if (idx1 < 0)
                 {
-                    DataType = parts[0].ToLower();
+                    DataType = value.ToLower();
                 }
-                if (parts.Length == 2)
+                else
                 {
-                    DataType = parts[0].ToLower();
-                    Length = parts[1];
-                }
-                if (parts.Length == 3) 
-                {
-                    DataType = parts[0].ToLower();
-                    NumericPrecision = parts[1];
-                    NumericScale = parts[2];
+                    if (idx2 < 0)
+                    {
+                        DataType = value.ToLower().Substring(0, idx1);
+                        Length = value.Substring(idx1+1, value.Length - idx1 -2);
+                        if (Length.ToLower() == "max")
+                        {
+                            Length = "5000";
+                        }
+                    }
+                    else
+                    {
+                        DataType = value.ToLower().Substring(0, idx1);
+                        var part2 = value.Substring(idx1+1, value.Length - idx1 - 2);
+                        var parts = part2.Split(",");
+                        NumericPrecision = parts[0];
+                        NumericScale = parts[1];
+                    }
                 }
             }
         }

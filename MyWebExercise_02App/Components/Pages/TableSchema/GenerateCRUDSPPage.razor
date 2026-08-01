@@ -332,6 +332,8 @@
         _uploadFile = default;
         _uploading = false;
         Snackbar.Add("匯入成功", Severity.Success);
+        if (tables.Any())
+            selectedDbName = tables.FirstOrDefault().DatabaseName;
         selectedItems = tables.ToHashSet();
         IsCanRun = true;
     }

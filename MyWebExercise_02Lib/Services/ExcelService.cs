@@ -302,8 +302,8 @@ namespace JackToolLib.Services
                             Nullable = Nullable,
                             PKAutoInt = PKAutoInt,
                             FullDataType = FullDataType,
-                            Default = Default
-                            ,Description = Description
+                            Default = Default,
+                            Description = Description
                         };
                         table.Columns.Add(column);
                     }
