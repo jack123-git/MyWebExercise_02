@@ -177,7 +177,7 @@ namespace JackToolLib.Models
         public string Nullable { get; set; }
         public string PKAutoInt { get; set; } // 是否為自動編號欄位 YES/NO
 
-        public string Identity { get; set; }
+        public string Identity { get; set; } // 是否為自動編號欄位 YES/NO
 
         public string Description { get; set; }
 

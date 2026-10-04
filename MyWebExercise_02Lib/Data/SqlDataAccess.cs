@@ -121,11 +121,12 @@ namespace JackToolLib.Data
                     ,col.NUMERIC_PRECISION AS 'NumericPrecision'
                     ,col.COLUMN_DEFAULT AS 'Default'
                     ,col.IS_NULLABLE AS 'Nullable'   
-                    ,CASE 
-                    WHEN COLUMNPROPERTY(object_id(tb.TABLE_NAME), col.COLUMN_NAME, 'IsIdentity') = 1  
-                        THEN 'YES' 
-                        ELSE 'NO' 
-                    END AS 'Identity'    
+                    --,CASE 
+                    --WHEN COLUMNPROPERTY(object_id(tb.TABLE_NAME), col.COLUMN_NAME, 'IsIdentity') = 1  
+                    --    THEN 'YES' 
+                    --    ELSE 'NO' 
+                    --END AS 'Identity' -- 抓不出結果  
+                    , col.PKAutoInt AS 'Identity'  
                     , col.PKAutoInt
                     ,(SELECT value
                         FROM sys.fn_listextendedproperty(NULL, 'schema', tb.TABLE_SCHEMA, 'table', tb.TABLE_NAME, 'column', DEFAULT)
