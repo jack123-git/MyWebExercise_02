@@ -1,0 +1,35 @@
+USE [{{ table.Database_name }}]
+GO
+
+
+-- 2026-10-20 增加檢查 Column Description
+{%- for column in table.Columns -%}
+{%- if column.Description != null and column.Description !=""  -%}
+IF EXISTS (SELECT ep.value FROM sys.tables t INNER JOIN sys.schemas s ON t.schema_id = s.schema_id INNER JOIN sys.columns c ON t.object_id = c.object_id LEFT JOIN sys.extended_properties ep ON t.object_id = ep.major_id AND c.column_id = ep.minor_id AND ep.name = 'MS_Description' WHERE s.name = N'{{ table.Schema_name }}' AND t.name = N'{{ table.Table_name }}' AND c.name = '{{ column.Column_name }}' and ep.value is not null)
+BEGIN
+    EXEC sys.sp_updateextendedproperty @name=N'MS_Description', @value=N'{{ column.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}', @level2type=N'COLUMN',@level2name=N'{{ column.Column_name }}'    
+END
+ELSE
+BEGIN
+    EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ column.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}', @level2type=N'COLUMN',@level2name=N'{{ column.Column_name }}'
+END	
+
+{%- endif -%}
+{%- endfor -%}
+
+
+
+-- table.Description
+{%- if table.Description != null and table.Description !="" -%}
+    -- 0 代表資料表本身
+IF EXISTS (SELECT ep.value FROM sys.tables t inner join sys.schemas s on t.schema_id = s.schema_id left join sys.extended_properties ep ON t.object_id = ep.major_id AND ep.minor_id = 0 AND ep.name = 'MS_Description' WHERE s.name =N'{{ table.Schema_name }}' and t.name = N'{{ table.Table_name }}'  and ep.value is not null)
+BEGIN
+    -- 存在則更新資料表描述
+    EXEC sys.sp_updateextendedproperty @name=N'MS_Description', @value=N'{{ table.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}'
+END
+ELSE
+BEGIN
+    -- 不存在則新增資料表描述
+    EXEC sys.sp_addextendedproperty @name=N'MS_Description', @value=N'{{ table.Description }}' , @level0type=N'SCHEMA',@level0name=N'{{ table.Schema_name }}', @level1type=N'TABLE',@level1name=N'{{ table.Table_name }}'
+END
+{%- endif -%}

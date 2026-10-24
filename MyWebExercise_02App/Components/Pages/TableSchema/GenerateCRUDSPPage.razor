@@ -87,7 +87,10 @@
             </MudTable>
         </div>
     }
-
+    <div>
+        <MudText Typo="Typo.body1" Class="pt-4">是否產生單一檔案</MudText>
+        <MudSwitch @bind-Value="IsSingleDocument" Color="Color.Secondary" />
+    </div>
 @*     <MudButton Color="Color.Primary" Variant="@Variant.Outlined" OnClick="GenerateSP" Disabled="!IsCanRun">
         產生Word文件
     </MudButton> *@
@@ -107,6 +110,7 @@
     private string classNameSpace = "Common.Model.DataTrans";
     private string selectedTemplateFile;
     private Dictionary<string, string> templateFiles = new Dictionary<string, string>();
+    private bool IsSingleDocument = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -229,6 +233,8 @@
         var templateContent = await File.ReadAllTextAsync(templatePath);
         Template template = Template.Parse(templateContent);
 
+        string singleFileContent = string.Empty;
+        string singleFileName = string.Empty;
         var files = new Dictionary<string, string>();
         foreach (var table in exportModel.Tables)
         {
@@ -236,8 +242,16 @@
             var templateNameWitoutExtension = Path.GetFileNameWithoutExtension(templatePath);
             var extensionName = GetSubFilename(templateNameWitoutExtension) == "sql" ? $"_{templateNameWitoutExtension}" : "";
             var downloadFile = $"{table.TableName}{extensionName}.{GetSubFilename(templateNameWitoutExtension)}";
+            if (IsSingleDocument)
+            {
+                singleFileContent += fileContent + System.Environment.NewLine;
+                if (string.IsNullOrEmpty(singleFileName))
+                    singleFileName = $"全部檔案{extensionName}.{GetSubFilename(templateNameWitoutExtension)}";
+            }
             files.Add(downloadFile, fileContent);
         }
+        if (IsSingleDocument)
+            files.Add(singleFileName, singleFileContent);
 
         // 建立記憶體串流
         using var memorystream = new MemoryStream();
@@ -268,6 +282,8 @@
         return fileName switch { 
             "class" => "cs",
             "createTableSql" => "sql",
+            "createTableSql_20261020" => "sql",
+            "GenTableDesription" => "sql",
             "GenTableCrudTvpSp" => "sql",
             _ => "txt"
         };   

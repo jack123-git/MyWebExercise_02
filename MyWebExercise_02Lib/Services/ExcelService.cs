@@ -231,6 +231,8 @@ namespace JackToolLib.Services
                 for (int rowIndex = 0; rowIndex <= sheet.LastRowNum; rowIndex++)
                 {
                     var row = sheet.GetRow(rowIndex);
+                    if (row.GetCell(0) == null) 
+                        continue;
                     var item = row.GetCell(0).ToString();
 
                     if (item == "資料表")
@@ -244,7 +246,7 @@ namespace JackToolLib.Services
                     else if (item == "資料表描述")
                     {
                         var tableDescription = row.GetCell(2).StringCellValue;
-                        table.Description = tableDescription;
+                        table.Description = tableDescription.Replace("'", "''"); 
                     }
                     else if (item == "項目")
                     {
@@ -286,7 +288,7 @@ namespace JackToolLib.Services
                         var PKAutoInt = ColumnDict.ContainsKey("自動編號") && row.GetCell(ColumnDict["自動編號"]).StringCellValue == "V" ? "Yes" : "No";
                         var FullDataType = ColumnDict.ContainsKey("資料型態") && row.GetCell(ColumnDict["資料型態"]).StringCellValue == "" ? null : row.GetCell(ColumnDict["資料型態"]).StringCellValue;
                         var Default = ColumnDict.ContainsKey("預設值") && row.GetCell(ColumnDict["預設值"])?.StringCellValue == "" ? null : row.GetCell(ColumnDict["預設值"])?.StringCellValue;
-                        var Description = ColumnDict.ContainsKey("描述") && row.GetCell(ColumnDict["描述"])?.StringCellValue == "" ? null : row.GetCell(ColumnDict["描述"])?.StringCellValue;
+                        var Description = ColumnDict.ContainsKey("描述") && row.GetCell(ColumnDict["描述"])?.StringCellValue == "" ? null : row.GetCell(ColumnDict["描述"])?.StringCellValue.Replace("'", "''");
 
                         var column = new DbColumn
                         {
